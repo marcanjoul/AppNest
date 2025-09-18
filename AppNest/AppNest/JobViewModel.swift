@@ -11,14 +11,15 @@ import SwiftUI
 class JobViewModel: ObservableObject {
     @Published var applications: [JobApplication] = []
 
-    func update(job: JobApplication, company: String, position: String, status: ApplicationStatus, date: Date) {
+    func update(job: JobApplication, company: String, position: String, status: ApplicationStatus, dateApplied: Date) {
         if let index = applications.firstIndex(where: { application in
             return application.id == job.id
         }) {
             applications[index].company = company
             applications[index].position = position
             applications[index].status = status
-            applications[index].dateApplied = date
+            applications[index].dateApplied = dateApplied
+            
         }
     }
 }
