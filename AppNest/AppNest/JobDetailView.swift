@@ -97,26 +97,28 @@ private struct StatusPickerSection: View {
     @Binding var status: ApplicationStatus
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 5) {
             Label("Job Status", systemImage: "rectangle.and.hand.point.up.left.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
 
             // Using id: \.self requires ApplicationStatus: Hashable; enums are Hashable by default.
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: 5) {
                     ForEach(ApplicationStatus.allCases, id: \.self) { option in
                         Text(option.rawValue)
-                            .font(.subheadline)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                            .font(option == status ? .headline : .subheadline) // bigger font for selected
+                            .padding(.horizontal, option == status ? 16 : 12)
+                            .padding(.vertical, option == status ? 10 : 8)
                             .background(
                                 Capsule()
                                     .fill(option == status ? Color.accentColor : Color(.systemGray5))
                             )
                             .foregroundColor(option == status ? .white : .primary)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: status)
+
                             .onTapGesture {
-                                withAnimation(.bouncy) {
+                                withAnimation(.interpolatingSpring) {
                                     status = option
                                 }
                             }
