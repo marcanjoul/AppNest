@@ -41,7 +41,7 @@ struct JobDetailView: View {
                     JobInfoSection(company: $company, position: $position)
                     StatusPickerSection(status: $status)
                     DateAppliedSection(dateApplied: $dateApplied)
-
+                    
                     Button(action: {
                         viewModel.update(
                             job: job,
@@ -61,6 +61,8 @@ struct JobDetailView: View {
                     }
                     .padding(.top, 10)
                 }
+            
+            
                 .padding()
             }
             .navigationTitle("Job Details")
@@ -68,6 +70,7 @@ struct JobDetailView: View {
         }
     }
 }
+
 
 // MARK: - Extracted Subviews
 
@@ -81,30 +84,64 @@ private struct JobInfoSection: View {
             set: { company.name = $0 }
         )
     }
-
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Job Info", systemImage: "briefcase.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundColor(.primary)
+        
+        HStack(spacing: 15) {
+            Image(company.logoName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 80, height: 80)
+                .clipShape(Circle()) // makes it perfectly round
+                .overlay(
+                    Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .shadow(radius: 2)
+            VStack {
+                VStack(alignment: .leading) {
+                    HStack {
+                        TextField("Position Title", text: $position)
+                            .padding(.vertical, 10)
+                            .padding(.leading, 12)   // normal padding on the left
+                            .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.gray.opacity(0.4), lineWidth: 1.2)
+                            )
+                            .overlay(
+                                HStack {
+                                    Spacer()
+                                    Image(systemName: "pencil")
+                                        .foregroundColor(.gray)
+                                        .padding(.trailing, 12)
+                                }
+                            )
+                    }
+                    }
+                
+                HStack {
+                    TextField("Company Name", text: companyNameBinding)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Color.gray.opacity(0.4), lineWidth: 1.2)
+                        )
+                        .overlay(
+                            HStack {
+                                Spacer()
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.gray)
+                                    .padding(.trailing, 12)
+                            }
+                        )
 
-            VStack(spacing: 15) {
-                TextField("Company Name ", text: companyNameBinding)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.gray.opacity(0.7), lineWidth: 1.2)
-                    )
+                }
 
-                TextField("Position Title", text: $position)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.gray.opacity(0.7), lineWidth: 1.2)
-                    )
+
             }
-            .padding(.vertical)
         }
+        .padding(.vertical)
     }
 }
 
@@ -169,7 +206,7 @@ private struct DateAppliedSection: View {
 
 #Preview {
     let testViewModel = JobViewModel()
-    let sampleCompany = Company(name: "Meta", logoName: "meta.logo")
+    let sampleCompany = Company(name: "Meta", logoName: "meta")
     let sampleJob = JobApplication(
         company: sampleCompany,
         position: "Software Engineering Intern",
