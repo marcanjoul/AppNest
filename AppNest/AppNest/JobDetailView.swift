@@ -12,10 +12,18 @@ struct JobDetailView: View {
     @ObservedObject var viewModel: JobViewModel
     var job: JobApplication
     
-    @State private var company: String
+    @State private var company: Company
     @State private var position: String
     @State private var status: ApplicationStatus
     @State private var dateApplied = Date()
+    
+    private var companyNameBinding: Binding<String> {
+        Binding(
+            get: { company.name }, // what to show in the TextField
+            set: { company.name = $0 } // what to do when user types something
+        )
+    }
+
     
     init(job: JobApplication, viewModel: JobViewModel) {
         self.job = job
@@ -64,8 +72,15 @@ struct JobDetailView: View {
 // MARK: - Extracted Subviews
 
 private struct JobInfoSection: View {
-    @Binding var company: String
+    @Binding var company: Company
     @Binding var position: String
+    
+    private var companyNameBinding: Binding<String> {
+        Binding(
+            get: { company.name },
+            set: { company.name = $0 }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -74,7 +89,7 @@ private struct JobInfoSection: View {
                 .foregroundColor(.primary)
 
             VStack(spacing: 15) {
-                TextField("Company Name", text: $company)
+                TextField("Company Name ", text: companyNameBinding)
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -154,11 +169,12 @@ private struct DateAppliedSection: View {
 
 #Preview {
     let testViewModel = JobViewModel()
+    let sampleCompany = Company(name: "Meta", logoName: "meta.logo")
     let sampleJob = JobApplication(
-        company: "Meta",
+        company: sampleCompany,
         position: "Software Engineering Intern",
         status: .applied,
-        dateApplied: Date(),
+        dateApplied: Date()
     )
     return NavigationStack {
         JobDetailView(job: sampleJob, viewModel: testViewModel)

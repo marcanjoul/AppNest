@@ -11,7 +11,7 @@ import SwiftUI
 class JobViewModel: ObservableObject {
     @Published var applications: [JobApplication] = []
 
-    func update(job: JobApplication, company: String, position: String, status: ApplicationStatus, dateApplied: Date) {
+    func update(job: JobApplication, company: Company, position: String, status: ApplicationStatus, dateApplied: Date) {
         if let index = applications.firstIndex(where: { application in
             return application.id == job.id
         }) {

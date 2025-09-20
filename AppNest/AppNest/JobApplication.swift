@@ -8,10 +8,16 @@
 
 import Foundation
 
+struct Company: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var logoName: String  // e.g. "apple", "google", "meta"
+}
+
 struct JobApplication: Identifiable {
     let id = UUID()
 // Every time a new job is created, it gets its own unique ID. SwiftUI won’t confuse two job applications even if they have the same company name.
-    var company: String
+    var company: Company
     var position: String
     var status: ApplicationStatus
     var dateApplied: Date
