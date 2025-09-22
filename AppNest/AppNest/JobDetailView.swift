@@ -15,6 +15,7 @@ struct JobDetailView: View {
     @State private var company: Company
     @State private var position: String
     @State private var status: ApplicationStatus
+    @State private var season: ApplicationSeason
     @State private var dateApplied = Date()
     
     private var companyNameBinding: Binding<String> {
@@ -31,6 +32,7 @@ struct JobDetailView: View {
         _company = State(initialValue: job.company)
         _position = State(initialValue: job.position)
         _status = State(initialValue: job.status)
+        _season = State(initialValue: job.season)
         _dateApplied = State(initialValue: job.dateApplied)
     }
     
@@ -40,6 +42,7 @@ struct JobDetailView: View {
                 VStack(spacing: 24) {
                     JobInfoSection(company: $company, position: $position)
                     StatusPickerSection(status: $status)
+                    SeasonPickerSection(season: $season)
                     DateAppliedSection(dateApplied: $dateApplied)
                     
                     Button(action: {
@@ -48,6 +51,7 @@ struct JobDetailView: View {
                             company: company,
                             position: position,
                             status: status,
+                            season: season,
                             dateApplied: dateApplied
                         )
                     }) {
@@ -182,6 +186,43 @@ private struct StatusPickerSection: View {
     }
 }
 
+private struct SeasonPickerSection: View {
+    @Binding var season: ApplicationSeason
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("Job Season", systemImage: "sun.snow.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.primary)
+
+            // Using id: \.self requires ApplicationStatus: Hashable; enums are Hashable by default.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    ForEach(ApplicationSeason.allCases, id: \.self) { option in
+                        Text(option.rawValue)
+                            .font(option == season ? .headline : .subheadline) // bigger font for selected
+                            .padding(.horizontal, option == season ? 16 : 12)
+                            .padding(.vertical, option == season ? 10 : 8)
+                            .background(
+                                Capsule()
+                                    .fill(option == season ? Color.accentColor : Color(.systemGray5))
+                            )
+                            .foregroundColor(option == season ? .white : .primary)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: season)
+
+                            .onTapGesture {
+                                withAnimation(.interpolatingSpring) {
+                                    season = option
+                                }
+                            }
+                    }
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+}
+
 private struct DateAppliedSection: View {
     @Binding var dateApplied: Date
 
@@ -211,6 +252,7 @@ private struct DateAppliedSection: View {
         company: sampleCompany,
         position: "Software Engineering Intern",
         status: .applied,
+        season: .summer,
         dateApplied: Date()
     )
     return NavigationStack {

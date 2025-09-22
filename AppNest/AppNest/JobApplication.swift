@@ -20,7 +20,15 @@ struct JobApplication: Identifiable {
     var company: Company
     var position: String
     var status: ApplicationStatus
+    var season: ApplicationSeason
     var dateApplied: Date
+}
+
+enum ApplicationSeason: String, CaseIterable{
+    case winter = "Winter"
+    case spring = "Spring"
+    case summer = "Summer"
+    case fall = "Fall"
 }
 
 enum ApplicationStatus: String, CaseIterable {
