@@ -91,7 +91,7 @@ private struct JobInfoSection: View {
     
     var body: some View {
         
-        HStack(spacing: 15) {
+        VStack(spacing: 15) {
             Image(company.logoName)
                 .resizable()
                 .scaledToFill()
@@ -108,10 +108,6 @@ private struct JobInfoSection: View {
                             .padding(.vertical, 10)
                             .padding(.leading, 12)   // normal padding on the left
                             .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .stroke(Color.gray.opacity(0.4), lineWidth: 1.2)
-                            )
                             .overlay(
                                 HStack {
                                     Spacer()
@@ -127,10 +123,6 @@ private struct JobInfoSection: View {
                     TextField("Company Name", text: companyNameBinding)
                         .padding(.vertical, 10)
                         .padding(.horizontal)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(Color.gray.opacity(0.4), lineWidth: 1.2)
-                        )
                         .overlay(
                             HStack {
                                 Spacer()
