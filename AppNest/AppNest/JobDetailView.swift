@@ -14,8 +14,8 @@ struct JobDetailView: View {
     
     @State private var company: Company
     @State private var position: String
-    @State private var status: ApplicationStatus
-    @State private var season: ApplicationSeason
+    @State private var status: ApplicationStatus?
+    @State private var season: ApplicationSeason?
     @State private var dateApplied = Date()
     
     private var companyNameBinding: Binding<String> {
@@ -50,8 +50,8 @@ struct JobDetailView: View {
                             job: job,
                             company: company,
                             position: position,
-                            status: status,
-                            season: season,
+                            status: status!,
+                            season: season!,
                             dateApplied: dateApplied
                         )
                     }) {
@@ -91,23 +91,24 @@ private struct JobInfoSection: View {
     
     var body: some View {
         
-        VStack(spacing: 15) {
+        VStack(alignment: .center, spacing: 10) {
             Image(company.logoName)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 80, height: 80)
+                .frame(width: 100, height: 100)
                 .clipShape(Circle()) // makes it perfectly round
                 .overlay(
                     Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
                 .shadow(radius: 2)
             VStack {
-                VStack(alignment: .leading) {
                     HStack {
                         TextField("Position Title", text: $position)
-                            .padding(.vertical, 10)
                             .padding(.leading, 12)   // normal padding on the left
                             .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
+                            .multilineTextAlignment(.center)
+                            .font(.headline)
+                            .fontWeight(.bold)
                             .overlay(
                                 HStack {
                                     Spacer()
@@ -117,12 +118,15 @@ private struct JobInfoSection: View {
                                 }
                             )
                     }
-                    }
-                
+                    
                 HStack {
                     TextField("Company Name", text: companyNameBinding)
-                        .padding(.vertical, 10)
-                        .padding(.horizontal)
+                        .padding(.leading, 12)   // normal padding on the left
+                        .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
+                        .multilineTextAlignment(.center)
+                        .font(.callout)
+                        .fontWeight(.regular)
+                        .foregroundStyle(.gray)
                         .overlay(
                             HStack {
                                 Spacer()
@@ -131,18 +135,52 @@ private struct JobInfoSection: View {
                                     .padding(.trailing, 12)
                             }
                         )
-
                 }
-
-
             }
         }
-        .padding(.vertical)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
+private struct jobStatusPill: View {
+    let option: ApplicationStatus
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Text(option.rawValue)
+            .font(isSelected ? .headline : .subheadline)
+            .padding(.horizontal, isSelected ? 16 : 12)
+            .padding(.vertical, isSelected ? 10 : 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.accentColor : Color(.systemGray5))
+            )
+            .foregroundColor(isSelected ? .white : .primary)
+            .onTapGesture(perform: onTap)
+    }
+}
+
+private struct jobSeasonPill: View {
+    let option: ApplicationSeason
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Text(option.rawValue)
+            .font(isSelected ? .headline : .subheadline)
+            .padding(.horizontal, isSelected ? 16 : 12)
+            .padding(.vertical, isSelected ? 10 : 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.accentColor : Color(.systemGray5))
+            )
+            .foregroundColor(isSelected ? .white : .primary)
+            .onTapGesture(perform: onTap)
     }
 }
 
 private struct StatusPickerSection: View {
-    @Binding var status: ApplicationStatus
+    @Binding var status: ApplicationStatus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -150,26 +188,18 @@ private struct StatusPickerSection: View {
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
 
-            // Using id: \.self requires ApplicationStatus: Hashable; enums are Hashable by default.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
                     ForEach(ApplicationStatus.allCases, id: \.self) { option in
-                        Text(option.rawValue)
-                            .font(option == status ? .headline : .subheadline) // bigger font for selected
-                            .padding(.horizontal, option == status ? 16 : 12)
-                            .padding(.vertical, option == status ? 10 : 8)
-                            .background(
-                                Capsule()
-                                    .fill(option == status ? Color.accentColor : Color(.systemGray5))
-                            )
-                            .foregroundColor(option == status ? .white : .primary)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: status)
-
-                            .onTapGesture {
-                                withAnimation(.interpolatingSpring) {
-                                    status = option
+                        jobStatusPill(
+                            option: option,
+                            isSelected: option == status,
+                            onTap: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    status = (status == option ? nil : option)
                                 }
                             }
+                        )
                     }
                 }
             }
@@ -179,38 +209,31 @@ private struct StatusPickerSection: View {
 }
 
 private struct SeasonPickerSection: View {
-    @Binding var season: ApplicationSeason
-
+    @Binding var season: ApplicationSeason?
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Label("Job Season", systemImage: "sun.snow.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
-
+            
             // Using id: \.self requires ApplicationStatus: Hashable; enums are Hashable by default.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
                     ForEach(ApplicationSeason.allCases, id: \.self) { option in
-                        Text(option.rawValue)
-                            .font(option == season ? .headline : .subheadline) // bigger font for selected
-                            .padding(.horizontal, option == season ? 16 : 12)
-                            .padding(.vertical, option == season ? 10 : 8)
-                            .background(
-                                Capsule()
-                                    .fill(option == season ? Color.accentColor : Color(.systemGray5))
-                            )
-                            .foregroundColor(option == season ? .white : .primary)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: season)
-
-                            .onTapGesture {
-                                withAnimation(.interpolatingSpring) {
-                                    season = option
+                        jobSeasonPill(
+                            option: option,
+                            isSelected: option == season,
+                            onTap: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)){
+                                    season = (season == option ? nil : option)
                                 }
                             }
+                        )
                     }
                 }
+                .padding(.vertical)
             }
-            .padding(.vertical)
         }
     }
 }
@@ -219,7 +242,7 @@ private struct DateAppliedSection: View {
     @Binding var dateApplied: Date
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 5) {
             Label("Date Applied", systemImage: "calendar")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
@@ -242,7 +265,7 @@ private struct DateAppliedSection: View {
     let sampleCompany = Company(name: "Meta", logoName: "meta")
     let sampleJob = JobApplication(
         company: sampleCompany,
-        position: "Software Engineering Intern",
+        position: "Software Engineering Intern - 2026",
         status: .applied,
         season: .summer,
         dateApplied: Date()
@@ -251,3 +274,4 @@ private struct DateAppliedSection: View {
         JobDetailView(job: sampleJob, viewModel: testViewModel)
     }
 }
+
