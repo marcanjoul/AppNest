@@ -19,8 +19,8 @@ struct JobApplication: Identifiable {
 // Every time a new job is created, it gets its own unique ID. SwiftUI won’t confuse two job applications even if they have the same company name.
     var company: Company
     var position: String
-    var status: ApplicationStatus
-    var season: ApplicationSeason
+    var status: ApplicationStatus?
+    var season: ApplicationSeason?
     var dateApplied: Date
 }
 
