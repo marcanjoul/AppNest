@@ -5,27 +5,45 @@
 //  Created by Mark Anjoul on 9/13/25.
 //
 
-
 import SwiftUI
 
+/// A screen that lets you view and edit a single `JobApplication`.
+///
+/// This view makes editable copies of the job's properties using `@State` so the
+/// user can make changes locally. When "Save Changes" is tapped, we pass those
+/// values back to the `JobViewModel` to update the original job.
 struct JobDetailView: View {
+    // The source of truth for jobs across the app. We observe it so the UI can
+    // react to changes coming from the model layer.
     @ObservedObject var viewModel: JobViewModel
+
+    // The job we are editing. We keep the original around so the view model
+    // knows which item to update when saving.
     var job: JobApplication
-    
+
+    // MARK: - Editable local state
+    // These `@State` properties are local, editable copies of the job's fields.
+    // We avoid editing the `job` directly so the user can cancel or navigate
+    // away without mutating the shared model until they tap "Save Changes".
     @State private var company: Company
     @State private var position: String
     @State private var status: ApplicationStatus?
     @State private var season: ApplicationSeason?
     @State private var dateApplied = Date()
-    
+
+    // Example of creating a Binding to a nested property (company.name).
+    // NOTE: This computed binding is not used in this top-level view because
+    // we pass `company` down to `JobInfoSection` where a similar binding is used.
     private var companyNameBinding: Binding<String> {
         Binding(
             get: { company.name }, // what to show in the TextField
-            set: { company.name = $0 } // what to do when user types something
+            set: { company.name = $0 } // how to update local state when user types
         )
     }
 
-    
+    // MARK: - Initializer
+    // We initialize our local `@State` properties from the incoming `job` so the
+    // text fields and pickers show the current values when the screen appears.
     init(job: JobApplication, viewModel: JobViewModel) {
         self.job = job
         self.viewModel = viewModel
@@ -35,17 +53,31 @@ struct JobDetailView: View {
         _season = State(initialValue: job.season)
         _dateApplied = State(initialValue: job.dateApplied)
     }
-    
+
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Subview that shows the company logo and lets you edit
+                    // the position title and company name.
                     JobInfoSection(company: $company, position: $position)
+
+                    // Horizontal pill selector for application status (e.g., Applied, Interviewing).
                     StatusPickerSection(status: $status)
+
+                    // Horizontal pill selector for season (e.g., Summer, Fall).
                     SeasonPickerSection(season: $season)
+
+                    // Date picker for when the application was submitted.
                     DateAppliedSection(dateApplied: $dateApplied)
-                    
+
+                    // Save button: pushes the edited values back to the view model.
                     Button(action: {
+                        // NOTE: We force-unwrap `status` and `season` here because
+                        // the UI is designed to ensure a selection is made. If you
+                        // want to be extra safe, consider guarding against nil and
+                        // showing an alert if the user hasn't picked one.
                         viewModel.update(
                             job: job,
                             company: company,
@@ -65,8 +97,6 @@ struct JobDetailView: View {
                     }
                     .padding(.top, 10)
                 }
-            
-            
                 .padding()
             }
             .navigationTitle("Job Details")
@@ -75,23 +105,27 @@ struct JobDetailView: View {
     }
 }
 
-
 // MARK: - Extracted Subviews
 
+/// Displays the company logo and two text fields: position title and company name.
+/// This view receives `@Binding` values so edits flow back up to `JobDetailView`'s
+/// local `@State` properties.
 private struct JobInfoSection: View {
     @Binding var company: Company
     @Binding var position: String
-    
+
+    // Binding to a nested value (`company.name`). This lets a TextField edit
+    // just the name, while still keeping `company` as a whole in sync.
     private var companyNameBinding: Binding<String> {
         Binding(
             get: { company.name },
             set: { company.name = $0 }
         )
     }
-    
+
     var body: some View {
-        
         VStack(alignment: .center, spacing: 10) {
+            // Company logo displayed as a circle with a subtle border and shadow.
             Image(company.logoName)
                 .resizable()
                 .scaledToFill()
@@ -101,24 +135,26 @@ private struct JobInfoSection: View {
                     Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
                 .shadow(radius: 2)
+
+            // Editable fields for position and company name with a trailing pencil icon.
             VStack {
-                    HStack {
-                        TextField("Position Title", text: $position)
-                            .padding(.leading, 12)   // normal padding on the left
-                            .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
-                            .multilineTextAlignment(.center)
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .overlay(
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "pencil")
-                                        .foregroundColor(.gray)
-                                        .padding(.trailing, 12)
-                                }
-                            )
-                    }
-                    
+                HStack {
+                    TextField("Position Title", text: $position)
+                        .padding(.leading, 12)   // normal padding on the left
+                        .padding(.trailing, 36) // extra padding so text doesn't overlap pencil
+                        .multilineTextAlignment(.center)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .overlay(
+                            HStack {
+                                Spacer()
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.gray)
+                                    .padding(.trailing, 12)
+                            }
+                        )
+                }
+
                 HStack {
                     TextField("Company Name", text: companyNameBinding)
                         .padding(.leading, 12)   // normal padding on the left
@@ -141,6 +177,8 @@ private struct JobInfoSection: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
+
+/// A small "pill" view used by the status selector. Highlights when selected.
 private struct jobStatusPill: View {
     let option: ApplicationStatus
     let isSelected: Bool
@@ -160,6 +198,7 @@ private struct jobStatusPill: View {
     }
 }
 
+/// A small "pill" view used by the season selector. Highlights when selected.
 private struct jobSeasonPill: View {
     let option: ApplicationSeason
     let isSelected: Bool
@@ -179,6 +218,7 @@ private struct jobSeasonPill: View {
     }
 }
 
+/// Lets the user pick a job status using horizontally scrolling pills.
 private struct StatusPickerSection: View {
     @Binding var status: ApplicationStatus?
 
@@ -190,11 +230,14 @@ private struct StatusPickerSection: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
+                    // `ApplicationStatus.allCases` provides the list of options to render.
                     ForEach(ApplicationStatus.allCases, id: \.self) { option in
                         jobStatusPill(
                             option: option,
                             isSelected: option == status,
                             onTap: {
+                                // Tapping toggles the selection. If the same pill is tapped
+                                // again, we set it to `nil` to represent "no selection".
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                     status = (status == option ? nil : option)
                                 }
@@ -208,16 +251,17 @@ private struct StatusPickerSection: View {
     }
 }
 
+/// Lets the user pick a season using horizontally scrolling pills.
 private struct SeasonPickerSection: View {
     @Binding var season: ApplicationSeason?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Label("Job Season", systemImage: "sun.snow.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
-            
-            // Using id: \.self requires ApplicationStatus: Hashable; enums are Hashable by default.
+
+            // Using `id: \.self` requires `ApplicationSeason: Hashable`.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
                     ForEach(ApplicationSeason.allCases, id: \.self) { option in
@@ -238,6 +282,7 @@ private struct SeasonPickerSection: View {
     }
 }
 
+/// A simple date picker limited to dates up to today (can't pick a future date).
 private struct DateAppliedSection: View {
     @Binding var dateApplied: Date
 
@@ -251,7 +296,7 @@ private struct DateAppliedSection: View {
                 DatePicker(
                     "Select a date:",
                     selection: $dateApplied,
-                    in: ...Date(),
+                    in: ...Date(), // Closed range up to "now" (no future dates)
                     displayedComponents: .date
                 )
             }
@@ -260,7 +305,9 @@ private struct DateAppliedSection: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
+    // Test data for the preview so you can see the view in Xcode's canvas.
     let testViewModel = JobViewModel()
     let sampleCompany = Company(name: "Meta", logoName: "meta")
     let sampleJob = JobApplication(
@@ -274,4 +321,3 @@ private struct DateAppliedSection: View {
         JobDetailView(job: sampleJob, viewModel: testViewModel)
     }
 }
-
