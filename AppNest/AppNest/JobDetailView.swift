@@ -30,6 +30,7 @@ struct JobDetailView: View {
     @State private var status: ApplicationStatus?
     @State private var season: ApplicationSeason?
     @State private var dateApplied = Date()
+    @State private var jobNotes: String
 
     // Example of creating a Binding to a nested property (company.name).
     // NOTE: This computed binding is not used in this top-level view because
@@ -52,6 +53,7 @@ struct JobDetailView: View {
         _status = State(initialValue: job.status)
         _season = State(initialValue: job.season)
         _dateApplied = State(initialValue: job.dateApplied)
+        _jobNotes = State(initialValue: job.jobNotes ?? "")
     }
 
     // MARK: - Body
@@ -71,6 +73,9 @@ struct JobDetailView: View {
 
                     // Date picker for when the application was submitted.
                     DateAppliedSection(dateApplied: $dateApplied)
+                    
+                    //Text Editor for when user wants to add notes about a position (e.g, benefits, requirements).
+                    JobNotesSection(jobNotes: $jobNotes)
 
                     // Save button: pushes the edited values back to the view model.
                     Button(action: {
@@ -84,7 +89,8 @@ struct JobDetailView: View {
                             position: position,
                             status: status!,
                             season: season!,
-                            dateApplied: dateApplied
+                            dateApplied: dateApplied,
+                            jobNotes: jobNotes
                         )
                     }) {
                         Text("Save Changes")
@@ -191,7 +197,7 @@ private struct jobStatusPill: View {
             .padding(.vertical, isSelected ? 10 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.accentColor : Color(.systemGray5))
+                    .fill(isSelected ? Color.green : Color(.systemGray5))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -211,7 +217,7 @@ private struct jobSeasonPill: View {
             .padding(.vertical, isSelected ? 10 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.accentColor : Color(.systemGray5))
+                    .fill(isSelected ? Color.green : Color(.systemGray5))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -305,6 +311,30 @@ private struct DateAppliedSection: View {
     }
 }
 
+/// A Text editor section for any notes needed to be added about the job position( benefits, requirements, etc.)
+private struct JobNotesSection: View{ 
+    @Binding var jobNotes: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("Job Notes", systemImage: "square.and.pencil")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.primary)
+            
+            VStack(spacing: 20) {
+                TextEditor(text: $jobNotes)
+                    .frame(minHeight: 100) // gives it space to type
+                    .padding(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+            }
+            .padding()
+        }
+    }
+}
+
 // MARK: - Preview
 #Preview {
     // Test data for the preview so you can see the view in Xcode's canvas.
@@ -315,9 +345,11 @@ private struct DateAppliedSection: View {
         position: "Software Engineering Intern - 2026",
         status: .applied,
         season: .summer,
-        dateApplied: Date()
+        dateApplied: Date(),
+        jobNotes: "-401(k) benefits\n-Health insurance included"
     )
     return NavigationStack {
         JobDetailView(job: sampleJob, viewModel: testViewModel)
     }
 }
+

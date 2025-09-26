@@ -22,6 +22,7 @@ struct JobApplication: Identifiable {
     var status: ApplicationStatus?
     var season: ApplicationSeason?
     var dateApplied: Date
+    var jobNotes: String?
 }
 
 enum ApplicationSeason: String, CaseIterable{
