@@ -192,7 +192,7 @@ private struct jobStatusPill: View {
     
     private var jobStatusPillColor: Color {
         switch option {
-        case .wishlist:
+        case .toApply:
             return .blue
         case .applied:
             return .yellow

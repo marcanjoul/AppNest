@@ -33,7 +33,7 @@ enum ApplicationSeason: String, CaseIterable{
 }
 
 enum ApplicationStatus: String, CaseIterable {
-    case wishlist = "Wishlist"
+    case toApply = "To Apply"
     case applied = "Applied"
     case interview = "Interview"
     case offer = "Offer"
