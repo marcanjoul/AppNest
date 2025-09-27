@@ -189,7 +189,21 @@ private struct jobStatusPill: View {
     let option: ApplicationStatus
     let isSelected: Bool
     let onTap: () -> Void
-
+    
+    private var jobStatusPillColor: Color {
+        switch option {
+        case .wishlist:
+            return .blue
+        case .applied:
+            return .yellow
+        case .interview:
+            return .gray
+        case .offer:
+            return .green
+        case .rejected:
+            return .red
+        }
+    }
     var body: some View {
         Text(option.rawValue)
             .font(isSelected ? .headline : .subheadline)
@@ -197,7 +211,7 @@ private struct jobStatusPill: View {
             .padding(.vertical, isSelected ? 10 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.green : Color(.systemGray5))
+                    .fill(isSelected ? jobStatusPillColor : jobStatusPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -210,6 +224,20 @@ private struct jobSeasonPill: View {
     let isSelected: Bool
     let onTap: () -> Void
 
+    private var jobSeasonPillColor: Color {
+        switch option {
+        case .spring:
+            return .pink
+        case .summer:
+            return .yellow
+        case .fall:
+            return .brown
+        case .winter:
+            return .blue
+
+        }
+    }
+
     var body: some View {
         Text(option.rawValue)
             .font(isSelected ? .headline : .subheadline)
@@ -217,7 +245,7 @@ private struct jobSeasonPill: View {
             .padding(.vertical, isSelected ? 10 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.green : Color(.systemGray5))
+                    .fill(isSelected ? jobSeasonPillColor : jobSeasonPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
