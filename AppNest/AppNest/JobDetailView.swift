@@ -124,9 +124,9 @@ struct JobDetailView: View {
                             .font(.headline)
                             .frame(maxWidth: 220)
                             .padding()
-                            .background(Color.accentColor)
+                            .background(Color.green)
                             .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
                     .padding(.top, 10)
                 }
@@ -479,7 +479,7 @@ private struct ResumeSection: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
             )
         }
     }
@@ -540,11 +540,11 @@ private struct JobNotesSection: View{
                 .foregroundColor(.primary)
             
                 TextEditor(text: $jobNotes)
-                    .frame(minHeight: 130)
+                    .frame(minHeight: 150)
                     .padding(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
                     )
             
         }
