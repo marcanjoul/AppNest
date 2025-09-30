@@ -70,67 +70,92 @@ struct JobDetailView: View {
     // MARK: - Body
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Subview that shows the company logo and lets you edit
-                    // the position title and company name.
-                    JobInfoSection(company: $company, position: $position)
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
 
-                    // Horizontal pill selector for job type (e.g., Full-time, Internship).
-                    TypePickerSection(type: $type)
-                    
-                    // Horizontal pill selector for application status (e.g., Applied, Interviewing).
-                    StatusPickerSection(status: $status)
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.10),
+                        Color.cyan.opacity(0.10),
+                        Color.blue.opacity(0.12)
+                    ],
+                    startPoint: .topTrailing,
+                    endPoint: .bottomLeading
+                )
+                .ignoresSafeArea()
 
-                    // Horizontal pill selector for season (e.g., Summer, Fall).
-                    SeasonPickerSection(season: $season)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Subview that shows the company logo and lets you edit
+                        // the position title and company name.
+                        JobInfoSection(company: $company, position: $position)
 
-                    // Date picker for when the application was submitted.
-                    DateAppliedSection(dateApplied: $dateApplied)
-                    
-                    // File upload section that shows the current resume file and lets the user pick or clear it
-                    ResumeSection(
-                        resumeFileName: resumeFileName,
-                        onPick: { isShowingDocumentPicker = true },
-                        onClear: { resumeFileName = nil }
-                    )
-                    
-                    //Text Editor for when user wants to add notes about a position (e.g, benefits, requirements).
-                    JobNotesSection(jobNotes: $jobNotes)
+                        // Horizontal pill selector for job type (e.g., Full-time, Internship).
+                        TypePickerSection(type: $type)
+                        
+                        // Horizontal pill selector for application status (e.g., Applied, Interviewing).
+                        StatusPickerSection(status: $status)
 
-     
+                        // Horizontal pill selector for season (e.g., Summer, Fall).
+                        if let type, [.partTime, .internship, .temporary, .Co_op].contains(type) {
+                            SeasonPickerSection(season: $season)
+                        }
 
-                    // Save button: pushes the edited values back to the view model.
-                    Button(action: {
-                        // NOTE: We force-unwrap `status` and `season` here because
-                        // the UI is designed to ensure a selection is made. If you
-                        // want to be extra safe, consider guarding against nil and
-                        // showing an alert if the user hasn't picked one.
-                        viewModel.update(
-                            job: job,
-                            company: company,
-                            position: position,
-                            type: job.jobType!,
-                            status: status!,
-                            season: season!,
-                            dateApplied: dateApplied,
-                            jobNotes: jobNotes,
+                        // Date picker for when the application was submitted.
+                        DateAppliedSection(dateApplied: $dateApplied)
+                        
+                        // File upload section that shows the current resume file and lets the user pick or clear it
+                        ResumeSection(
                             resumeFileName: resumeFileName,
-                            resumeBookmark: _pendingResumeBookmark
+                            onPick: { isShowingDocumentPicker = true },
+                            onClear: { resumeFileName = nil }
                         )
-                        _pendingResumeBookmark = nil
-                    }) {
-                        Text("Save Changes")
-                            .font(.headline)
-                            .frame(maxWidth: 220)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        
+                        //Text Editor for when user wants to add notes about a position (e.g, benefits, requirements).
+                        JobNotesSection(jobNotes: $jobNotes)
+
+         
+
+                        // Save button: pushes the edited values back to the view model.
+                        Button(action: {
+                            // NOTE: We force-unwrap `status` and `season` here because
+                            // the UI is designed to ensure a selection is made. If you
+                            // want to be extra safe, consider guarding against nil and
+                            // showing an alert if the user hasn't picked one.
+                            viewModel.update(
+                                job: job,
+                                company: company,
+                                position: position,
+                                type: type!,
+                                status: status!,
+                                season: season,
+                                dateApplied: dateApplied,
+                                jobNotes: jobNotes,
+                                resumeFileName: resumeFileName,
+                                resumeBookmark: _pendingResumeBookmark
+                            )
+                            _pendingResumeBookmark = nil
+                        }) {
+                            Text("Save Changes")
+                                .font(.headline.weight(.bold))
+                                .frame(maxWidth: 220)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        }
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
+                    .onChange(of: type) { oldType, newType in
+                        let allowed: [ApplicationType] = [.partTime, .internship, .temporary, .Co_op]
+                        if !(newType.map { allowed.contains($0) } ?? false) {
+                            season = nil
+                        }
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .sheet(isPresented: $isShowingDocumentPicker) {
                 DocumentPicker { result in
@@ -248,12 +273,12 @@ private struct jobTypePill: View {
     }
     var body: some View {
         Text(option.rawValue)
-            .font(isSelected ? .headline : .subheadline)
-            .padding(.horizontal, isSelected ? 16 : 12)
-            .padding(.vertical, isSelected ? 10 : 8)
+            .font(isSelected ? .headline.weight(.black) : .subheadline)
+            .padding(.horizontal, isSelected ? 15 : 12)
+            .padding(.vertical, isSelected ? 9 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? jobTypePillColor : jobTypePillColor.opacity(0.2))
+                    .fill(isSelected ? jobTypePillColor.opacity(0.6) : jobTypePillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -282,12 +307,12 @@ private struct jobStatusPill: View {
     }
     var body: some View {
         Text(option.rawValue)
-            .font(isSelected ? .headline : .subheadline)
-            .padding(.horizontal, isSelected ? 16 : 12)
-            .padding(.vertical, isSelected ? 10 : 8)
+            .font(isSelected ? .headline.weight(.black) : .subheadline)
+            .padding(.horizontal, isSelected ? 15 : 12)
+            .padding(.vertical, isSelected ? 9 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? jobStatusPillColor : jobStatusPillColor.opacity(0.2))
+                    .fill(isSelected ? jobStatusPillColor.opacity(0.6) : jobStatusPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -316,12 +341,12 @@ private struct jobSeasonPill: View {
 
     var body: some View {
         Text(option.rawValue)
-            .font(isSelected ? .headline : .subheadline)
-            .padding(.horizontal, isSelected ? 16 : 12)
-            .padding(.vertical, isSelected ? 10 : 8)
+            .font(isSelected ? .headline.weight(.black) : .subheadline)
+            .padding(.horizontal, isSelected ? 15 : 12)
+            .padding(.vertical, isSelected ? 9 : 8)
             .background(
                 Capsule()
-                    .fill(isSelected ? jobSeasonPillColor : jobSeasonPillColor.opacity(0.2))
+                    .fill(isSelected ? jobSeasonPillColor.opacity(0.6) : jobSeasonPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
             .onTapGesture(perform: onTap)
@@ -540,6 +565,8 @@ private struct JobNotesSection: View{
                 .foregroundColor(.primary)
             
                 TextEditor(text: $jobNotes)
+                    .scrollContentBackground(.hidden) // hide default white background
+                    .background(Color.clear)
                     .frame(minHeight: 150)
                     .padding(8)
                     .overlay(
