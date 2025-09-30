@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// A screen that lets you view and edit a single `JobApplication`.
 ///
@@ -33,6 +34,11 @@ struct JobDetailView: View {
     @State private var dateApplied = Date()
     @State private var jobNotes: String
 
+    // Hold the picked file's bookmark until Save is tapped
+    @State private var _pendingResumeBookmark: Data? = nil
+    @State private var resumeFileName: String? = nil
+    @State private var isShowingDocumentPicker = false
+
     // Example of creating a Binding to a nested property (company.name).
     // NOTE: This computed binding is not used in this top-level view because
     // we pass `company` down to `JobInfoSection` where a similar binding is used.
@@ -56,6 +62,9 @@ struct JobDetailView: View {
         _season = State(initialValue: job.season)
         _dateApplied = State(initialValue: job.dateApplied)
         _jobNotes = State(initialValue: job.jobNotes ?? "")
+        // Preload existing resume info if present
+        // Note: These are non-persisted UI states; they reflect the current job values
+        _resumeFileName = State(initialValue: job.resumeFileName)
     }
 
     // MARK: - Body
@@ -79,8 +88,17 @@ struct JobDetailView: View {
                     // Date picker for when the application was submitted.
                     DateAppliedSection(dateApplied: $dateApplied)
                     
+                    // File upload section that shows the current resume file and lets the user pick or clear it
+                    ResumeSection(
+                        resumeFileName: resumeFileName,
+                        onPick: { isShowingDocumentPicker = true },
+                        onClear: { resumeFileName = nil }
+                    )
+                    
                     //Text Editor for when user wants to add notes about a position (e.g, benefits, requirements).
                     JobNotesSection(jobNotes: $jobNotes)
+
+     
 
                     // Save button: pushes the edited values back to the view model.
                     Button(action: {
@@ -96,8 +114,11 @@ struct JobDetailView: View {
                             status: status!,
                             season: season!,
                             dateApplied: dateApplied,
-                            jobNotes: jobNotes
+                            jobNotes: jobNotes,
+                            resumeFileName: resumeFileName,
+                            resumeBookmark: _pendingResumeBookmark
                         )
+                        _pendingResumeBookmark = nil
                     }) {
                         Text("Save Changes")
                             .font(.headline)
@@ -110,6 +131,19 @@ struct JobDetailView: View {
                     .padding(.top, 10)
                 }
                 .padding()
+            }
+            .sheet(isPresented: $isShowingDocumentPicker) {
+                DocumentPicker { result in
+                    switch result {
+                    case .success(let picked):
+                        resumeFileName = picked.fileName
+                        // Store bookmark data for persistence
+                        // (We pass it on save; not persisted in state)
+                        self._pendingResumeBookmark = picked.bookmark
+                    case .failure:
+                        break
+                    }
+                }
             }
             .navigationTitle("Job Details")
             .navigationBarTitleDisplayMode(.inline)
@@ -398,16 +432,99 @@ private struct DateAppliedSection: View {
             Label("Date Applied", systemImage: "calendar")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
+            
+            DatePicker(
+                "Select a date:",
+                selection: $dateApplied,
+                in: ...Date(), // Closed range up to "now" (no future dates)
+                displayedComponents: .date
+            )
+            .padding(.vertical)
+        }
+    }
+}
 
-            VStack(spacing: 20) {
-                DatePicker(
-                    "Select a date:",
-                    selection: $dateApplied,
-                    in: ...Date(), // Closed range up to "now" (no future dates)
-                    displayedComponents: .date
-                )
+/// A section that displays the current resume file (if any) and lets the user pick or clear it.
+private struct ResumeSection: View {
+    var resumeFileName: String?
+    var onPick: () -> Void
+    var onClear: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Label("Resume Used", systemImage: "doc.richtext")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.primary)
+
+            HStack {
+                Image(systemName: "doc.text")
+                    .foregroundStyle(.secondary)
+                Text(resumeFileName ?? "No file selected")
+                    .foregroundStyle(resumeFileName == nil ? .secondary : .primary)
+                Spacer()
+                if resumeFileName != nil {
+                    Button(role: .destructive) {
+                        onClear()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+                Button {
+                    onPick()
+                } label: {
+                    Image(systemName: "paperclip")
+                }
+                .buttonStyle(.bordered)
             }
-            .padding()
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            )
+        }
+    }
+}
+
+/// A UIKit-based document picker wrapped for SwiftUI that returns a security-scoped bookmark for persistence.
+private struct DocumentPicker: UIViewControllerRepresentable {
+    struct PickedFile {
+        let fileName: String
+        let bookmark: Data
+    }
+
+    var completion: (Result<PickedFile, Error>) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let supportedTypes: [UTType] = [.pdf, .plainText, .rtf, .image, .data]
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let completion: (Result<PickedFile, Error>) -> Void
+        init(completion: @escaping (Result<PickedFile, Error>) -> Void) { self.completion = completion }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            do {
+                // Start security-scoped access to create a bookmark
+                let _ = url.startAccessingSecurityScopedResource()
+                defer { url.stopAccessingSecurityScopedResource() }
+                let bookmark = try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+                completion(.success(PickedFile(fileName: url.lastPathComponent, bookmark: bookmark)))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            // No-op; user cancelled
         }
     }
 }
@@ -417,24 +534,24 @@ private struct JobNotesSection: View{
     @Binding var jobNotes: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 20) {
             Label("Job Notes", systemImage: "square.and.pencil")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
             
-            VStack(spacing: 20) {
                 TextEditor(text: $jobNotes)
-                    .frame(minHeight: 100) // gives it space to type
+                    .frame(minHeight: 130)
                     .padding(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
-            }
-            .padding()
+            
         }
     }
 }
+
+
 
 // MARK: - Preview
 #Preview {
@@ -444,13 +561,10 @@ private struct JobNotesSection: View{
     let sampleJob = JobApplication(
         company: sampleCompany,
         position: "Software Engineering Intern - 2026",
-        jobType: .internship,
-        status: .applied,
-        season: .summer,
         dateApplied: Date(),
-        jobNotes: "-401(k) benefits\n-Health insurance included"
     )
     NavigationStack {
         JobDetailView(job: sampleJob, viewModel: testViewModel)
     }
 }
+

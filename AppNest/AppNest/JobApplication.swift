@@ -24,6 +24,8 @@ struct JobApplication: Identifiable {
     var season: ApplicationSeason?
     var dateApplied: Date
     var jobNotes: String?
+    var resumeFileName: String? = nil
+    var resumeBookmark: Data? = nil
 }
 enum ApplicationType: String, CaseIterable{
     case fullTime = "Full Time"
@@ -48,5 +50,4 @@ enum ApplicationStatus: String, CaseIterable {
     case offer = "Offer"
     case rejected = "Rejected"
 }
-
 
