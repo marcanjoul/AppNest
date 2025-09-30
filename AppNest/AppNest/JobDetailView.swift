@@ -7,6 +7,9 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// A screen that lets you view and edit a single `JobApplication`.
 ///
@@ -156,7 +159,13 @@ struct JobDetailView: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
+            .simultaneousGesture(TapGesture().onEnded {
+                #if canImport(UIKit)
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                #endif
+            })
             .sheet(isPresented: $isShowingDocumentPicker) {
                 DocumentPicker { result in
                     switch result {
@@ -281,7 +290,13 @@ private struct jobTypePill: View {
                     .fill(isSelected ? jobTypePillColor.opacity(0.6) : jobTypePillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture(perform: onTap)
+            .onTapGesture {
+                #if canImport(UIKit)
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                #endif
+                onTap()
+            }
     }
 }
 
@@ -315,7 +330,13 @@ private struct jobStatusPill: View {
                     .fill(isSelected ? jobStatusPillColor.opacity(0.6) : jobStatusPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture(perform: onTap)
+            .onTapGesture {
+                #if canImport(UIKit)
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                #endif
+                onTap()
+            }
     }
 }
 
@@ -349,12 +370,26 @@ private struct jobSeasonPill: View {
                     .fill(isSelected ? jobSeasonPillColor.opacity(0.6) : jobSeasonPillColor.opacity(0.2))
             )
             .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture(perform: onTap)
+            .onTapGesture {
+                #if canImport(UIKit)
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                #endif
+                onTap()
+            }
     }
 }
 /// Lets the user pick a job type using horizontally scrolling pills.
 private struct TypePickerSection: View {
     @Binding var type: ApplicationType?
+
+    private var orderedOptions: [ApplicationType] {
+        if let selected = type {
+            return [selected] + ApplicationType.allCases.filter { $0 != selected }
+        } else {
+            return ApplicationType.allCases
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -362,25 +397,35 @@ private struct TypePickerSection: View {
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 5) {
-                    // `ApplicationType.allCases` provides the list of options to render.
-                    ForEach(ApplicationType.allCases, id: \.self) { option in
-                        jobTypePill(
-                            option: option,
-                            isSelected: option == type,
-                            onTap: {
-                                // Tapping toggles the selection. If the same pill is tapped again,
-                                // set it to `nil` to represent "no selection".
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                    type = (type == option ? nil : option)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 5) {
+                        // `ApplicationType.allCases` provides the list of options to render.
+                        ForEach(orderedOptions, id: \.self) { option in
+                            jobTypePill(
+                                option: option,
+                                isSelected: option == type,
+                                onTap: {
+                                    // Tapping toggles the selection. If the same pill is tapped again,
+                                    // set it to `nil` to represent "no selection".
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                        type = (type == option ? nil : option)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                            .id(option)
+                        }
+                    }
+                }
+                .padding(.vertical)
+                .onChange(of: type) { _, _ in
+                    if let first = orderedOptions.first {
+                        withAnimation(.easeOut) {
+                            proxy.scrollTo(first, anchor: .leading)
+                        }
                     }
                 }
             }
-            .padding(.vertical)
         }
     }
 }
@@ -388,31 +433,49 @@ private struct TypePickerSection: View {
 private struct StatusPickerSection: View {
     @Binding var status: ApplicationStatus?
 
+    private var orderedOptions: [ApplicationStatus] {
+        if let selected = status {
+            return [selected] + ApplicationStatus.allCases.filter { $0 != selected }
+        } else {
+            return ApplicationStatus.allCases
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Label("Job Status", systemImage: "rectangle.and.hand.point.up.left.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 5) {
-                    // `ApplicationStatus.allCases` provides the list of options to render.
-                    ForEach(ApplicationStatus.allCases, id: \.self) { option in
-                        jobStatusPill(
-                            option: option,
-                            isSelected: option == status,
-                            onTap: {
-                                // Tapping toggles the selection. If the same pill is tapped
-                                // again, we set it to `nil` to represent "no selection".
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                    status = (status == option ? nil : option)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 5) {
+                        // `ApplicationStatus.allCases` provides the list of options to render.
+                        ForEach(orderedOptions, id: \.self) { option in
+                            jobStatusPill(
+                                option: option,
+                                isSelected: option == status,
+                                onTap: {
+                                    // Tapping toggles the selection. If the same pill is tapped
+                                    // again, we set it to `nil` to represent "no selection".
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                        status = (status == option ? nil : option)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                            .id(option)
+                        }
+                    }
+                }
+                .padding(.vertical)
+                .onChange(of: status) { _, _ in
+                    if let first = orderedOptions.first {
+                        withAnimation(.easeOut) {
+                            proxy.scrollTo(first, anchor: .leading)
+                        }
                     }
                 }
             }
-            .padding(.vertical)
         }
     }
 }
@@ -421,28 +484,46 @@ private struct StatusPickerSection: View {
 private struct SeasonPickerSection: View {
     @Binding var season: ApplicationSeason?
 
+    private var orderedOptions: [ApplicationSeason] {
+        if let selected = season {
+            return [selected] + ApplicationSeason.allCases.filter { $0 != selected }
+        } else {
+            return ApplicationSeason.allCases
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Label("Job Season", systemImage: "sun.snow.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
 
-            // Using `id: \.self` requires `ApplicationSeason: Hashable`.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 5) {
-                    ForEach(ApplicationSeason.allCases, id: \.self) { option in
-                        jobSeasonPill(
-                            option: option,
-                            isSelected: option == season,
-                            onTap: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)){
-                                    season = (season == option ? nil : option)
+            ScrollViewReader { proxy in
+                // Using `id: \.self` requires `ApplicationSeason: Hashable`.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 5) {
+                        ForEach(orderedOptions, id: \.self) { option in
+                            jobSeasonPill(
+                                option: option,
+                                isSelected: option == season,
+                                onTap: {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)){
+                                        season = (season == option ? nil : option)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                            .id(option)
+                        }
+                    }
+                    .padding(.vertical)
+                }
+                .onChange(of: season) { _, _ in
+                    if let first = orderedOptions.first {
+                        withAnimation(.easeOut) {
+                            proxy.scrollTo(first, anchor: .leading)
+                        }
                     }
                 }
-                .padding(.vertical)
             }
         }
     }
