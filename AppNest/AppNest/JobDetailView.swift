@@ -27,6 +27,7 @@ struct JobDetailView: View {
     // away without mutating the shared model until they tap "Save Changes".
     @State private var company: Company
     @State private var position: String
+    @State private var type: ApplicationType?
     @State private var status: ApplicationStatus?
     @State private var season: ApplicationSeason?
     @State private var dateApplied = Date()
@@ -50,6 +51,7 @@ struct JobDetailView: View {
         self.viewModel = viewModel
         _company = State(initialValue: job.company)
         _position = State(initialValue: job.position)
+        _type = State(initialValue: job.jobType)
         _status = State(initialValue: job.status)
         _season = State(initialValue: job.season)
         _dateApplied = State(initialValue: job.dateApplied)
@@ -65,6 +67,9 @@ struct JobDetailView: View {
                     // the position title and company name.
                     JobInfoSection(company: $company, position: $position)
 
+                    // Horizontal pill selector for job type (e.g., Full-time, Internship).
+                    TypePickerSection(type: $type)
+                    
                     // Horizontal pill selector for application status (e.g., Applied, Interviewing).
                     StatusPickerSection(status: $status)
 
@@ -87,6 +92,7 @@ struct JobDetailView: View {
                             job: job,
                             company: company,
                             position: position,
+                            type: job.jobType!,
                             status: status!,
                             season: season!,
                             dateApplied: dateApplied,
@@ -184,6 +190,42 @@ private struct JobInfoSection: View {
     }
 }
 
+/// A small "pill" view used by the type selector. Highlights when selected.
+private struct jobTypePill: View {
+    let option: ApplicationType
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    private var jobTypePillColor: Color {
+        switch option {
+        case .fullTime:
+            return .green
+        case .partTime:
+            return .yellow
+        case .internship:
+            return .red
+        case .contract:
+            return .blue
+        case .Co_op:
+            return .gray
+        case .temporary:
+            return .purple
+        }
+    }
+    var body: some View {
+        Text(option.rawValue)
+            .font(isSelected ? .headline : .subheadline)
+            .padding(.horizontal, isSelected ? 16 : 12)
+            .padding(.vertical, isSelected ? 10 : 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? jobTypePillColor : jobTypePillColor.opacity(0.2))
+            )
+            .foregroundColor(isSelected ? .white : .primary)
+            .onTapGesture(perform: onTap)
+    }
+}
+
 /// A small "pill" view used by the status selector. Highlights when selected.
 private struct jobStatusPill: View {
     let option: ApplicationStatus
@@ -251,7 +293,38 @@ private struct jobSeasonPill: View {
             .onTapGesture(perform: onTap)
     }
 }
+/// Lets the user pick a job type using horizontally scrolling pills.
+private struct TypePickerSection: View {
+    @Binding var type: ApplicationType?
 
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("Job Type", systemImage: "list.bullet")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.primary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    // `ApplicationType.allCases` provides the list of options to render.
+                    ForEach(ApplicationType.allCases, id: \.self) { option in
+                        jobTypePill(
+                            option: option,
+                            isSelected: option == type,
+                            onTap: {
+                                // Tapping toggles the selection. If the same pill is tapped again,
+                                // set it to `nil` to represent "no selection".
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    type = (type == option ? nil : option)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(.vertical)
+        }
+    }
+}
 /// Lets the user pick a job status using horizontally scrolling pills.
 private struct StatusPickerSection: View {
     @Binding var status: ApplicationStatus?
@@ -371,13 +444,13 @@ private struct JobNotesSection: View{
     let sampleJob = JobApplication(
         company: sampleCompany,
         position: "Software Engineering Intern - 2026",
+        jobType: .internship,
         status: .applied,
         season: .summer,
         dateApplied: Date(),
         jobNotes: "-401(k) benefits\n-Health insurance included"
     )
-    return NavigationStack {
+    NavigationStack {
         JobDetailView(job: sampleJob, viewModel: testViewModel)
     }
 }
-
