@@ -8,7 +8,7 @@ AppNest is an AI-powered iOS app with Firebase backend, using MVVM architecture 
 ---
 
 ## Screenshots/Demos
-Job Details Page (MVP)
+Job Details Page (In Progress Still)
 
 <img src="https://github.com/user-attachments/assets/e7c4a935-aaca-461a-b4fd-ee4d9c009efe" alt="0929 demo" width="180"/>
 
@@ -49,7 +49,7 @@ Job Details Page (MVP)
 
 ### 5. **Smart Filtering & Status Tags**
 
-* Custom status options: `Wishlist`, `Applied`, `Interview`, `Offer`, `Rejected`
+* Custom status options: `To Apply`, `Applied`, `Interview`, `Offer`, `Rejected`
 * Filter by role, company, date, or status
   
 ### 6. **AI Cover Letter/Resume Tips** *(Stretch Goal)*
