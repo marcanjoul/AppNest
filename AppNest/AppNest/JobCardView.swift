@@ -1,0 +1,132 @@
+import SwiftUI
+
+struct JobCardView: View {
+    let job: JobApplication
+
+    private var appliedRelativeText: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return "Applied " + formatter.localizedString(for: job.dateApplied, relativeTo: Date())
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 14) {
+            // Company Logo
+            Image(job.company.logoName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 56, height: 56)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.25), lineWidth: 1))
+                .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(job.position)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                Text(job.company.name)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    if let type = job.jobType {
+                        Pill(text: type.rawValue, color: color(for: type))
+                    }
+                    if let status = job.status {
+                        Pill(text: status.rawValue, color: color(for: status))
+                    }
+                }
+
+                Text(appliedRelativeText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.quaternary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.06),
+                            Color.cyan.opacity(0.04)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+    }
+
+    // MARK: - Helpers
+    private func color(for type: ApplicationType) -> Color {
+        switch type {
+        case .fullTime: return .green
+        case .partTime: return .yellow
+        case .contract: return .blue
+        case .internship: return .red
+        case .Co_op: return .gray
+        case .temporary: return .purple
+        }
+    }
+
+    private func color(for status: ApplicationStatus) -> Color {
+        switch status {
+        case .toApply: return .blue
+        case .applied: return .yellow
+        case .interview: return .gray
+        case .offer: return .green
+        case .rejected: return .red
+        }
+    }
+}
+
+private struct Pill: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule().fill(color.opacity(0.16))
+            )
+            .foregroundStyle(color)
+    }
+}
+
+#Preview {
+    let sampleCompany = Company(name: "Meta", logoName: "meta")
+    let sampleJob = JobApplication(
+        company: sampleCompany,
+        position: "Software Engineering Intern - 2026",
+        dateApplied: Date().addingTimeInterval(-86_400 * 10)
+    )
+
+    return VStack(spacing: 16) {
+        JobCardView(job: sampleJob)
+            .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
