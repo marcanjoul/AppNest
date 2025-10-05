@@ -12,6 +12,7 @@ struct Company: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var logoName: String  // e.g. "apple", "google", "meta"
+    var logoImageData: Data? = nil
 }
 
 struct JobApplication: Identifiable {

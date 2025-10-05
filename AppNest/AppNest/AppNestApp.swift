@@ -11,7 +11,7 @@ import SwiftUI
 struct AppNestApp: App {
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            RootView()
         }
     }
 }

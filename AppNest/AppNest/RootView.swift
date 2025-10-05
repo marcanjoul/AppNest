@@ -9,12 +9,13 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject private var viewModel = JobViewModel()
+    
 
     var body: some View {
         TabView {
             // Home Tab
             NavigationStack {
-                HomeView()
+                HomeView(viewModel: viewModel)
             }
             .tabItem {
                 Label("Home", systemImage: "list.bullet")

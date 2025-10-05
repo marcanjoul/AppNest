@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct JobCardView: View {
     let job: JobApplication
@@ -12,32 +15,51 @@ struct JobCardView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             // Company Logo
-            Image(job.company.logoName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 56, height: 56)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.gray.opacity(0.25), lineWidth: 1))
-                .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+            Group {
+                #if canImport(UIKit)
+                if let data = job.company.logoImageData, let ui = UIImage(data: data) {
+                    Image(uiImage: ui)
+                        .resizable()
+                } else {
+                    Image(job.company.logoName)
+                        .resizable()
+                }
+                #else
+                Image(job.company.logoName)
+                    .resizable()
+                #endif
+            }
+            .scaledToFill()
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.gray.opacity(0.25), lineWidth: 1))
+            .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(job.position)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .lineLimit(2)
+                    
 
                 Text(job.company.name)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                HStack(spacing: 8) {
-                    if let type = job.jobType {
-                        Pill(text: type.rawValue, color: color(for: type))
-                    }
-                    if let status = job.status {
-                        Pill(text: status.rawValue, color: color(for: status))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        if let type = job.jobType {
+                            Pill(text: type.rawValue, color: color(for: type))
+                        }
+                        if let status = job.status {
+                            Pill(text: status.rawValue, color: color(for: status))
+                        }
+                        if let season = job.season {
+                            Pill(text: season.rawValue, color: color(for: season))
+                        }
                     }
                 }
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
                 Text(appliedRelativeText)
                     .font(.caption)
@@ -98,6 +120,15 @@ struct JobCardView: View {
         case .rejected: return .red
         }
     }
+
+    private func color(for season: ApplicationSeason) -> Color {
+        switch season {
+        case .spring: return .pink
+        case .summer: return .yellow
+        case .fall: return .brown
+        case .winter: return .blue
+        }
+    }
 }
 
 private struct Pill: View {
@@ -107,6 +138,8 @@ private struct Pill: View {
     var body: some View {
         Text(text)
             .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
