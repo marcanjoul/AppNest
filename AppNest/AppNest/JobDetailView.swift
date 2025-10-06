@@ -317,127 +317,6 @@ private struct JobInfoSection: View {
     }
 }
 
-/// A small "pill" view used by the type selector. Highlights when selected.
-private struct jobTypePill: View {
-    let option: ApplicationType
-    let isSelected: Bool
-    let onTap: () -> Void
-    
-    private var jobTypePillColor: Color {
-        switch option {
-        case .fullTime:
-            return .green
-        case .partTime:
-            return .yellow
-        case .internship:
-            return .red
-        case .contract:
-            return .blue
-        case .Co_op:
-            return .gray
-        case .temporary:
-            return .purple
-        }
-    }
-    var body: some View {
-        Text(option.rawValue)
-            .font(isSelected ? .headline.weight(.black) : .subheadline)
-            .padding(.horizontal, isSelected ? 15 : 12)
-            .padding(.vertical, isSelected ? 9 : 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? jobTypePillColor.opacity(0.9) : jobTypePillColor.opacity(0.2))
-            )
-            .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture {
-                #if canImport(UIKit)
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-                #endif
-                onTap()
-            }
-    }
-}
-
-/// A small "pill" view used by the status selector. Highlights when selected.
-private struct jobStatusPill: View {
-    let option: ApplicationStatus
-    let isSelected: Bool
-    let onTap: () -> Void
-    
-    private var jobStatusPillColor: Color {
-        switch option {
-        case .toApply:
-            return .blue
-        case .applied:
-            return .yellow
-        case .interview:
-            return .gray
-        case .offer:
-            return .green
-        case .rejected:
-            return .red
-        }
-    }
-    var body: some View {
-        Text(option.rawValue)
-            .font(isSelected ? .headline.weight(.black) : .subheadline)
-            .padding(.horizontal, isSelected ? 15 : 12)
-            .padding(.vertical, isSelected ? 9 : 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? jobStatusPillColor.opacity(0.9) : jobStatusPillColor.opacity(0.2))
-            )
-            .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture {
-                #if canImport(UIKit)
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-                #endif
-                onTap()
-            }
-    }
-}
-
-/// A small "pill" view used by the season selector. Highlights when selected.
-private struct jobSeasonPill: View {
-    let option: ApplicationSeason
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    private var jobSeasonPillColor: Color {
-        switch option {
-        case .spring:
-            return .pink
-        case .summer:
-            return .yellow
-        case .fall:
-            return .brown
-        case .winter:
-            return .blue
-
-        }
-    }
-
-    var body: some View {
-        Text(option.rawValue)
-            .font(isSelected ? .headline.weight(.black) : .subheadline)
-            .padding(.horizontal, isSelected ? 15 : 12)
-            .padding(.vertical, isSelected ? 9 : 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? jobSeasonPillColor.opacity(0.9) : jobSeasonPillColor.opacity(0.2))
-            )
-            .foregroundColor(isSelected ? .white : .primary)
-            .onTapGesture {
-                #if canImport(UIKit)
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-                #endif
-                onTap()
-            }
-    }
-}
 /// Lets the user pick a job type using horizontally scrolling pills.
 private struct TypePickerSection: View {
     @Binding var type: ApplicationType?
@@ -461,12 +340,11 @@ private struct TypePickerSection: View {
                     HStack(spacing: 5) {
                         // `ApplicationType.allCases` provides the list of options to render.
                         ForEach(orderedOptions, id: \.self) { option in
-                            jobTypePill(
+                            SelectablePill(
                                 option: option,
                                 isSelected: option == type,
+                                color: option.color, // comes from enum extension in PillUI.swift
                                 onTap: {
-                                    // Tapping toggles the selection. If the same pill is tapped again,
-                                    // set it to `nil` to represent "no selection".
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         type = (type == option ? nil : option)
                                     }
@@ -511,12 +389,11 @@ private struct StatusPickerSection: View {
                     HStack(spacing: 5) {
                         // `ApplicationStatus.allCases` provides the list of options to render.
                         ForEach(orderedOptions, id: \.self) { option in
-                            jobStatusPill(
+                            SelectablePill(
                                 option: option,
                                 isSelected: option == status,
+                                color: option.color, // comes from enum extension in PillUI.swift
                                 onTap: {
-                                    // Tapping toggles the selection. If the same pill is tapped
-                                    // again, we set it to `nil` to represent "no selection".
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         status = (status == option ? nil : option)
                                     }
@@ -562,11 +439,12 @@ private struct SeasonPickerSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 5) {
                         ForEach(orderedOptions, id: \.self) { option in
-                            jobSeasonPill(
+                            SelectablePill(
                                 option: option,
                                 isSelected: option == season,
+                                color: option.color, // comes from enum extension in PillUI.swift
                                 onTap: {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)){
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                         season = (season == option ? nil : option)
                                     }
                                 }

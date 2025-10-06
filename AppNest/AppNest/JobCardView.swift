@@ -39,11 +39,14 @@ struct JobCardView: View {
                 Text(job.position)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .layoutPriority(1)
                     
-
                 Text(job.company.name)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
@@ -58,16 +61,13 @@ struct JobCardView: View {
                         }
                     }
                 }
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
 
                 Text(appliedRelativeText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
             }
-
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
@@ -137,13 +137,13 @@ private struct Pill: View {
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(.caption.weight(.bold))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
-                Capsule().fill(color.opacity(0.16))
+                Capsule().fill(color.opacity(0.25))
             )
             .foregroundStyle(color)
     }
@@ -154,10 +154,13 @@ private struct Pill: View {
     let sampleJob = JobApplication(
         company: sampleCompany,
         position: "Software Engineering Intern - 2026",
+        jobType: .internship,
+        status: .applied,
+        season: .summer,
         dateApplied: Date().addingTimeInterval(-86_400 * 10)
     )
 
-    return VStack(spacing: 16) {
+    return VStack(spacing: 19) {
         JobCardView(job: sampleJob)
             .padding()
     }
