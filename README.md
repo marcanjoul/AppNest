@@ -10,7 +10,7 @@ AppNest is an AI-powered iOS app with Firebase backend, using MVVM architecture 
 ## Screenshots/Demos
 Job Details Page (In Progress Still)
 
-<img src="https://github.com/user-attachments/assets/e7c4a935-aaca-461a-b4fd-ee4d9c009efe" alt="0929 demo" width="180"/>
+<img src="https://github.com/user-attachments/assets/be1b7c9d-d3b7-4807-afca-35adeaf825b1" alt="0929 demo" width="180"/>
 
 
 ---
