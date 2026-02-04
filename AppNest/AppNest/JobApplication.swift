@@ -1,11 +1,3 @@
-//
-//  JobApplication.swift
-//  AppNest
-//
-//  Created by Mark Anjoul on 9/13/25.
-//
-
-
 import Foundation
 
 // Represents a company associated with a job application. Can store company logo, or optional image data

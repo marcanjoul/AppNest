@@ -1,10 +1,3 @@
-//
-//  ProfileView.swift
-//  AppNest
-//
-//  Created by Assistant on 10/1/25.
-//
-
 import SwiftUI
 
 struct ProfileView: View {

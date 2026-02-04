@@ -1,10 +1,3 @@
-//
-//  JobDetailView.swift
-//  AppNest
-//
-//  Created by Mark Anjoul on 9/13/25.
-//
-
 import SwiftUI
 import UniformTypeIdentifiers
 import PhotosUI

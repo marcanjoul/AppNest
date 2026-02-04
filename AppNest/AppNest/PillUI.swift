@@ -1,18 +1,3 @@
-//
-//  PillUI.swift
-//  AppNest
-//
-//  Created by Mark Anjoul on 10/6/25.
-//
-
-
-//
-//  PillUI.swift
-//  AppNest
-//
-//  Created by Mark Anjoul on 10/5/25.
-//
-
 import SwiftUI
 
 // MARK: - Universal Selectable Pill
