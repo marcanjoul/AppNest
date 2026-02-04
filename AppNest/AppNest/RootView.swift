@@ -3,7 +3,6 @@ import SwiftUI
 struct RootView: View {
     @StateObject private var viewModel = JobViewModel()
     
-
     var body: some View {
         TabView {
             // Home Tab

@@ -74,7 +74,7 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("Applications")
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search by title or company")
+            .searchable(text: $searchText, prompt: "Search by title or company")
         }
     }
 }
