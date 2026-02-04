@@ -2,8 +2,6 @@
 //  AddView.swift
 //  AppNest
 //
-//  Created by Assistant on 10/1/25.
-//
 
 import SwiftUI
 
@@ -14,7 +12,7 @@ struct AddView: View {
                 .font(.system(size: 48))
             Text("Add an Application")
                 .font(.title2.weight(.semibold))
-            Text("Paste an email, paste a link, or add manually. This screen is a placeholder and can be expanded to your flows.")
+            Text("Paste an email, paste a link, or add manually. This screen is a placeholder.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
         }

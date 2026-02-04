@@ -109,9 +109,7 @@ struct JobDetailView: View {
                     StatusPickerSection(status: $status)
 
                     // Horizontal pill selector for season (e.g., Summer, Fall).
-                    if let type, [.partTime, .internship, .temporary, .Co_op].contains(type) {
                         SeasonPickerSection(season: $season)
-                    }
 
                     // Date picker for when the application was submitted.
                     DateAppliedSection(dateApplied: $dateApplied)
@@ -135,12 +133,8 @@ struct JobDetailView: View {
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
+            // Removed global tap-to-dismiss keyboard gesture to avoid layout issues (Invalid frame dimension) when combined with interactive keyboard dismissal.
         }
-        .simultaneousGesture(TapGesture().onEnded {
-            #if canImport(UIKit)
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            #endif
-        })
         .sheet(isPresented: $isShowingDocumentPicker) {
             DocumentPicker { result in
                 switch result {
@@ -241,7 +235,7 @@ private struct JobInfoSection: View {
                 logoImage
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 100, height: 100)
+                    .frame(width: 120, height: 120)
                     .clipShape(Circle())
                     .overlay(
                         Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)

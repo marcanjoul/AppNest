@@ -1,5 +1,5 @@
 //
-//  ApplicationStatus.swift
+//  JobApplication.swift
 //  AppNest
 //
 //  Created by Mark Anjoul on 9/13/25.
@@ -8,11 +8,12 @@
 
 import Foundation
 
+// Represents a company associated with a job application. Can store company logo, or optional image data
 struct Company: Identifiable, Hashable {
     let id = UUID()
     var name: String
-    var logoName: String  // e.g. "apple", "google", "meta"
-    var logoImageData: Data? = nil
+    var logoName: String //string key for a logo in assets
+    var logoImageData: Data? = nil //optional image data (e.g. when user uploads a custom logo).
 }
 
 struct JobApplication: Identifiable {
