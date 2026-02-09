@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct HomeView: View {
+struct ApplicationView: View {
     @ObservedObject var viewModel: JobViewModel
     
     @State private var searchText: String = ""
@@ -105,5 +105,5 @@ struct HomeView: View {
         JobApplication(company: netflix, position: "Mobile Engineering Intern", jobType: .internship, status: .applied, season: .summer, dateApplied: Date().addingTimeInterval(-86_400 * 24))
     ]
 
-    return NavigationStack { HomeView(viewModel: vm) }
+    return NavigationStack { ApplicationView(viewModel: vm) }
 }
