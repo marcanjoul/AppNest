@@ -5,22 +5,13 @@ struct RootView: View {
     
     var body: some View {
         TabView {
-            // Home Tab
+            // Appplications Tab
             NavigationStack {
-                HomeView(viewModel: viewModel)
+                ApplicationView(viewModel: viewModel)
             }
             .tabItem {
-                Label("Home", systemImage: "list.bullet")
+                Label("Applications", systemImage: "list.bullet")
             }
-
-            // Add Tab (placeholder for paste email/link/manual entry flows)
-            NavigationStack {
-                AddView()
-            }
-            .tabItem {
-                Label("Add", systemImage: "plus.circle")
-            }
-
             // Profile Tab (placeholder for stats, default resume, exports)
             NavigationStack {
                 ProfileView()

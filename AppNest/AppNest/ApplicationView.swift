@@ -4,6 +4,7 @@ struct ApplicationView: View {
     @ObservedObject var viewModel: JobViewModel
     
     @State private var searchText: String = ""
+    @State private var isPresentingNewApplication: Bool = false
     
     private var filteredApplications: [JobApplication] {
         let apps = viewModel.applications
@@ -74,7 +75,29 @@ struct ApplicationView: View {
                 }
             }
             .navigationTitle("Applications")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingNewApplication = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add Application")
+                }
+            }
             .searchable(text: $searchText, prompt: "Search by title or company")
+            .sheet(isPresented: $isPresentingNewApplication) {
+                // Initialize a new JobApplication placeholder for creation
+                let newApplication = JobApplication(
+                    company: Company(name: "", logoName: ""),
+                    position: "",
+                    jobType: nil,
+                    status: .applied,
+                    season: nil,
+                    dateApplied: Date()
+                )
+                JobDetailView(job: newApplication, viewModel: viewModel)
+            }
         }
     }
 }
