@@ -1,0 +1,181 @@
+import Foundation
+import NaturalLanguage
+
+/// Parses job-related emails to extract application details.
+///
+/// Uses a hybrid approach:
+/// - Apple's NaturalLanguage framework (NLTagger) for company name extraction
+/// - Pattern matching for position titles, dates, and status keywords
+struct EmailParser {
+    
+    struct ParsedResult {
+        var companyName: String?
+        var position: String?
+        var status: ApplicationStatus?
+        var dateApplied: Date?
+    }
+    
+    /// Main entry point — takes raw email text and returns extracted fields.
+    func parse(_ emailText: String) -> ParsedResult {
+        var result = ParsedResult()
+        
+        result.companyName = extractCompanyName(from: emailText)
+        result.position = extractPosition(from: emailText)
+        result.status = extractStatus(from: emailText)
+        result.dateApplied = extractDate(from: emailText)
+        
+        return result
+    }
+    
+    // MARK: - Company Name (NLTagger)
+    
+    /// Uses Apple's on-device NER to find organization names in the text.
+    /// If multiple organizations are found, picks the most frequently mentioned one.
+    private func extractCompanyName(from text: String) -> String? {
+        let tagger = NLTagger(tagSchemes: [.nameType])
+        tagger.string = text
+        
+        var organizations: [String: Int] = [:]
+        
+        tagger.enumerateTags(
+            in: text.startIndex..<text.endIndex,
+            unit: .word,
+            scheme: .nameType,
+            options: [.omitWhitespace, .omitPunctuation, .joinNames]
+        ) { tag, tokenRange in
+            if tag == .organizationName {
+                let name = String(text[tokenRange])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    organizations[name, default: 0] += 1
+                }
+            }
+            return true
+        }
+        
+        // Return the most frequently mentioned organization
+        return organizations
+            .sorted { $0.value > $1.value }
+            .first?.key
+    }
+    
+    // MARK: - Position Title (Pattern Matching)
+    
+    /// Looks for common email patterns like:
+    /// "your application for [POSITION]"
+    /// "the [POSITION] role/position"
+    /// "applying for [POSITION]"
+    /// "applied to [POSITION]"
+    private func extractPosition(from text: String) -> String? {
+        let patterns = [
+            // "application for Software Engineer at Company"
+            #"(?:application|applied|applying)\s+(?:for|to)\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|@)\s+|\.|\n|$)"#,
+            // "the Software Engineer role/position"
+            #"(?:the|our)\s+(.+?)\s+(?:role|position|opening|opportunity)"#,
+            // "Role: Software Engineer" or "Position: Software Engineer"
+            #"(?:role|position|title)\s*:\s*(.+?)(?:\n|$)"#,
+            // "interviewing for Software Engineer"
+            #"interviewing\s+(?:you\s+)?for\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|@)\s+|\.|\n|$)"#,
+        ]
+        
+        for pattern in patterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matched = String(text[match])
+                // Extract the capture group content
+                if let result = extractCaptureGroup(from: matched, pattern: pattern) {
+                    let cleaned = result
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: ".,;:"))
+                    if !cleaned.isEmpty && cleaned.count < 100 {
+                        return cleaned
+                    }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Status (Keyword Matching)
+    
+    /// Detects application status from common email phrases.
+    private func extractStatus(from text: String) -> ApplicationStatus? {
+        let lowered = text.lowercased()
+        
+        // Order matters — check more specific phrases first
+        let statusPatterns: [(ApplicationStatus, [String])] = [
+            (.offer, [
+                "pleased to offer", "we'd like to offer", "offer letter",
+                "we are excited to offer", "extend an offer", "congratulations",
+                "welcome to the team"
+            ]),
+            (.rejected, [
+                "unfortunately", "not moving forward", "will not be moving",
+                "decided not to", "other candidates", "not selected",
+                "regret to inform", "unable to offer", "wish you the best",
+                "after careful consideration"
+            ]),
+            (.interview, [
+                "schedule an interview", "interview invitation", "like to interview",
+                "next round", "phone screen", "technical interview",
+                "would like to speak", "meet with our team", "interview with"
+            ]),
+            (.applied, [
+                "thank you for applying", "application received",
+                "application has been submitted", "successfully submitted",
+                "we have received your application", "thank you for your interest",
+                "confirm your application"
+            ]),
+        ]
+        
+        for (status, phrases) in statusPatterns {
+            for phrase in phrases {
+                if lowered.contains(phrase) {
+                    return status
+                }
+            }
+        }
+        
+        return .applied // Default fallback
+    }
+    
+    // MARK: - Date (NSDataDetector)
+    
+    /// Uses Apple's NSDataDetector to find dates in the email.
+    /// Falls back to today's date if none found.
+    private func extractDate(from text: String) -> Date? {
+        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue)
+        let range = NSRange(text.startIndex..., in: text)
+        
+        let matches = detector?.matches(in: text, options: [], range: range) ?? []
+        
+        // Return the first reasonable date (not in the distant past or future)
+        let now = Date()
+        let sixMonthsAgo = Calendar.current.date(byAdding: .month, value: -6, to: now)!
+        let oneMonthAhead = Calendar.current.date(byAdding: .month, value: 1, to: now)!
+        
+        for match in matches {
+            if let date = match.date,
+               date >= sixMonthsAgo && date <= oneMonthAhead {
+                return date
+            }
+        }
+        
+        return Date() // Fallback to today
+    }
+    
+    // MARK: - Helpers
+    
+    private func extractCaptureGroup(from text: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return nil
+        }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              match.numberOfRanges > 1,
+              let captureRange = Range(match.range(at: 1), in: text) else {
+            return nil
+        }
+        return String(text[captureRange])
+    }
+}
