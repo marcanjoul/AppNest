@@ -153,7 +153,9 @@ struct EmailParser {
     private func extractStatus(from text: String) -> ApplicationStatus? {
         let lowered = text.lowercased()
         
-        // Order matters — check more specific phrases first
+        // Phrases that indicate hypothetical/conditional language — skip rejection detection
+        let conditionalPrefixes = ["if you are ", "if you're ", "in case you ", "should you "]
+        
         let statusPatterns: [(ApplicationStatus, [String])] = [
             (.offer, [
                 "pleased to offer", "we'd like to offer", "offer letter",
@@ -162,7 +164,7 @@ struct EmailParser {
             ]),
             (.rejected, [
                 "unfortunately", "not moving forward", "will not be moving",
-                "decided not to", "other candidates", "not selected",
+                "decided not to", "other candidates",
                 "regret to inform", "unable to offer", "wish you the best",
                 "after careful consideration"
             ]),
@@ -175,19 +177,36 @@ struct EmailParser {
                 "thank you for applying", "application received",
                 "application has been submitted", "successfully submitted",
                 "we have received your application", "thank you for your interest",
-                "confirm your application"
+                "confirm your application", "received your application",
+                "reviewing your application", "we received your application"
             ]),
         ]
         
         for (status, phrases) in statusPatterns {
             for phrase in phrases {
                 if lowered.contains(phrase) {
+                    // Check if this match is inside a conditional/hypothetical sentence
+                    if status == .rejected {
+                        let isConditional = conditionalPrefixes.contains { conditional in
+                            if let condRange = lowered.range(of: conditional),
+                               let phraseRange = lowered.range(of: phrase) {
+                                // Check if the conditional appears before the phrase
+                                // and they're in the same sentence
+                                let sentenceStart = lowered[..<phraseRange.lowerBound]
+                                    .lastIndex(of: ".") ?? lowered.startIndex
+                                return condRange.lowerBound >= sentenceStart &&
+                                       condRange.lowerBound < phraseRange.lowerBound
+                            }
+                            return false
+                        }
+                        if isConditional { continue }
+                    }
                     return status
                 }
             }
         }
         
-        return .applied // Default fallback
+        return .applied
     }
     
     // MARK: - Date (NSDataDetector)
