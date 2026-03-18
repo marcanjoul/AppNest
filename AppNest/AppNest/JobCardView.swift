@@ -3,26 +3,16 @@ import SwiftUI
 import UIKit
 #endif
 
-// MARK: - Job Card View
-
-/// Displays a single job application as a card in the application list.
+/// A card view that displays a summary of a job application.
 ///
-/// The card shows:
-/// - Company logo (from assets or custom uploaded image)
-/// - Position title
-/// - Company name
-/// - Pills for job type, status, and season
-/// - Relative date when applied (e.g., "Applied 5 days ago")
-/// - Chevron indicating it's tappable
-///
-/// The card uses a glassmorphic design with gradients and material effects.
+/// Shows the company logo, position title, company name, status pills
+/// (job type, status, season), and a relative timestamp for when the
+/// application was submitted. Used in the main applications list.
 struct JobCardView: View {
-    /// The job application to display
+    /// The job application to display in this card.
     let job: JobApplication
 
-    /// Generates a user-friendly relative time string for when the application was submitted.
-    ///
-    /// Examples: "Applied 2 days ago", "Applied 3 weeks ago"
+    /// Returns a human-readable relative date string (e.g., "Applied 3d ago").
     private var appliedRelativeText: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
@@ -31,22 +21,23 @@ struct JobCardView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            // MARK: Company Logo
-            // Load logo from custom image data if available, otherwise use asset catalog
+            // Company logo: shows custom image data, asset catalog image, or a fallback icon.
             Group {
                 #if canImport(UIKit)
-                // On iOS: try to load custom uploaded logo first
-                if let data = job.company.logoImageData, let ui = UIImage(data: data) {
+                if let data = job.companyLogoImageData, let ui = UIImage(data: data) {
                     Image(uiImage: ui)
                         .resizable()
-                } else {
-                    // Fall back to asset catalog logo
-                    Image(job.company.logoName)
+                } else if !job.companyLogoName.isEmpty {
+                    Image(job.companyLogoName)
                         .resizable()
+                } else {
+                    Image(systemName: "building.2")
+                        .resizable()
+                        .padding(12)
+                        .foregroundStyle(.secondary)
                 }
                 #else
-                // On macOS or other platforms: use asset catalog only
-                Image(job.company.logoName)
+                Image(job.companyLogoName)
                     .resizable()
                 #endif
             }
@@ -56,9 +47,8 @@ struct JobCardView: View {
             .overlay(Circle().stroke(Color.gray.opacity(0.25), lineWidth: 1))
             .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
 
-            // MARK: Job Details
+            // Job details: position, company name, status pills, and date.
             VStack(alignment: .leading, spacing: 6) {
-                // Position title
                 Text(job.position)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -66,28 +56,26 @@ struct JobCardView: View {
                     .multilineTextAlignment(.leading)
                     .layoutPriority(1)
                     
-                // Company name
-                Text(job.company.name)
+                Text(job.companyName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
 
-                // Pills for job type, status, and season
+                // Horizontally scrollable row of status pills (type, status, season).
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         if let type = job.jobType {
-                            Pill(text: type.rawValue, color: color(for: type))
+                            Pill(text: type.rawValue, color: type.color)
                         }
                         if let status = job.status {
-                            Pill(text: status.rawValue, color: color(for: status))
+                            Pill(text: status.rawValue, color: status.color)
                         }
                         if let season = job.season {
-                            Pill(text: season.rawValue, color: color(for: season))
+                            Pill(text: season.rawValue, color: season.color)
                         }
                     }
                 }
 
-                // Relative date applied
                 Text(appliedRelativeText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -95,18 +83,16 @@ struct JobCardView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Navigation chevron indicator
+            // Navigation chevron indicating the card is tappable.
             Image(systemName: "chevron.right")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.quaternary)
         }
         .padding(16)
-        // Glassmorphic background with material effect
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(.ultraThinMaterial)
         )
-        // Subtle gradient overlay for visual depth
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(
@@ -120,7 +106,6 @@ struct JobCardView: View {
                     )
                 )
         )
-        // Border stroke
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Color.black.opacity(0.06), lineWidth: 1)
@@ -128,78 +113,15 @@ struct JobCardView: View {
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
     }
-
-    // MARK: - Color Mapping Helpers
-    
-    /// Returns the appropriate color for a given application type.
-    ///
-    /// Color scheme:
-    /// - Full-time: Green (permanent position)
-    /// - Part-time: Yellow (flexible)
-    /// - Contract: Blue (time-bound)
-    /// - Internship: Red (learning opportunity)
-    /// - Co-op: Gray (academic integration)
-    /// - Temporary: Purple (short-term)
-    private func color(for type: ApplicationType) -> Color {
-        switch type {
-        case .fullTime: return .green
-        case .partTime: return .yellow
-        case .contract: return .blue
-        case .internship: return .red
-        case .Co_op: return .gray
-        case .temporary: return .purple
-        }
-    }
-
-    /// Returns the appropriate color for a given application status.
-    ///
-    /// Color scheme reflects urgency and progress:
-    /// - To Apply: Blue (action needed)
-    /// - Applied: Yellow (pending)
-    /// - Interview: Gray (in progress)
-    /// - Offer: Green (success)
-    /// - Rejected: Red (closed)
-    private func color(for status: ApplicationStatus) -> Color {
-        switch status {
-        case .toApply: return .blue
-        case .applied: return .yellow
-        case .interview: return .gray
-        case .offer: return .green
-        case .rejected: return .red
-        }
-    }
-
-    /// Returns the appropriate color for a given season.
-    ///
-    /// Colors match common seasonal associations:
-    /// - Spring: Pink (flowers)
-    /// - Summer: Yellow (sunshine)
-    /// - Fall: Brown (leaves)
-    /// - Winter: Blue (cold)
-    private func color(for season: ApplicationSeason) -> Color {
-        switch season {
-        case .spring: return .pink
-        case .summer: return .yellow
-        case .fall: return .brown
-        case .winter: return .blue
-        }
-    }
 }
 
-// MARK: - Pill Component
-
-/// A small colored pill/badge for displaying tags like job type, status, or season.
-///
-/// Features:
-/// - Colored background with 25% opacity
-/// - Foreground text in the solid color
-/// - Capsule shape with padding
-/// - Bold text that doesn't wrap
+/// A small, non-interactive pill used inside `JobCardView` to display
+/// a colored label for job type, status, or season.
 private struct Pill: View {
-    /// The text to display in the pill
+    /// The text displayed inside the pill (e.g., "Internship", "Applied").
     let text: String
     
-    /// The accent color for this pill
+    /// The accent color for the pill background and text.
     let color: Color
 
     var body: some View {
@@ -214,16 +136,12 @@ private struct Pill: View {
             )
             .foregroundStyle(color)
     }
-    
 }
 
-
-// MARK: - Preview
-
 #Preview {
-    let sampleCompany = Company(name: "Meta", logoName: "meta")
     let sampleJob = JobApplication(
-        company: sampleCompany,
+        companyName: "Meta",
+        companyLogoName: "meta",
         position: "Software Engineering Intern - 2026",
         jobType: .internship,
         status: .applied,
@@ -236,4 +154,5 @@ private struct Pill: View {
             .padding()
     }
     .background(Color(.systemGroupedBackground))
+    .modelContainer(for: JobApplication.self, inMemory: true)
 }

@@ -1,85 +1,77 @@
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 import PhotosUI
 #if canImport(UIKit)
 import UIKit
 #endif
 
-/// A screen that lets you view and edit a single `JobApplication`.
+/// A form view for creating or editing a job application.
 ///
-/// This view makes editable copies of the job's properties using `@State` so the
-/// user can make changes locally. When "Save Changes" is tapped, we pass those
-/// values back to the `JobViewModel` to update the original job.
+/// When `job` is `nil`, the view operates in "create" mode, presenting empty fields
+/// and an "Add Application" button. When an existing `JobApplication` is passed in,
+/// the view pre-fills all fields and allows editing with a "Save Changes" button.
+///
+/// The view is composed of extracted subviews for each section (company info,
+/// job type, status, season, date, resume, and notes).
 struct JobDetailView: View {
-    /// The source of truth for jobs across the app. We observe it so the UI can
-    /// react to changes coming from the model layer.
-    @ObservedObject var viewModel: JobViewModel
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    /// The job we are editing. We keep the original around so the view model
-    /// knows which item to update when saving.
-    var job: JobApplication
+    /// The existing job application to edit, or `nil` when creating a new one.
+    var job: JobApplication?
 
     // MARK: - Editable local state
-    
-    /// These `@State` properties are local, editable copies of the job's fields.
-    /// We avoid editing the `job` directly so the user can cancel or navigate
-    /// away without mutating the shared model until they tap "Save Changes".
-    @State private var company: Company
+    @State private var companyName: String
+    @State private var companyLogoName: String
+    @State private var companyLogoImageData: Data?
     @State private var position: String
     @State private var type: ApplicationType?
     @State private var status: ApplicationStatus?
     @State private var season: ApplicationSeason?
-    @State private var dateApplied = Date()
+    @State private var dateApplied: Date
     @State private var jobNotes: String
-
-    /// Hold the picked file's bookmark until Save is tapped
-    @State private var _pendingResumeBookmark: Data? = nil
-    @State private var resumeFileName: String? = nil
+    @State private var resumeFileName: String?
+    /// Temporarily holds resume bookmark data until save is performed.
+    @State private var _pendingResumeBookmark: Data?
     @State private var isShowingDocumentPicker = false
+    @State private var pickerItem: PhotosPickerItem? = nil
 
-    /// Example of creating a Binding to a nested property (company.name).
-    /// NOTE: This computed binding is not used in this top-level view because
-    /// we pass `company` down to `JobInfoSection` where a similar binding is used.
-    private var companyNameBinding: Binding<String> {
-        Binding(
-            get: { company.name },
-            set: { company.name = $0 }
-        )
-    }
+    /// Whether this view is creating a new application (true) or editing an existing one (false).
+    private var isNewApplication: Bool { job == nil }
 
-    /// Disable save when required selections are missing
+    /// Save is disabled until the user provides at minimum a company name, position, type, and status.
     private var isSaveDisabled: Bool {
+        companyName.trimmingCharacters(in: .whitespaces).isEmpty ||
+        position.trimmingCharacters(in: .whitespaces).isEmpty ||
         type == nil || status == nil
     }
 
     // MARK: - Initializer
-    
-    /// We initialize our local `@State` properties from the incoming `job` so the
-    /// text fields and pickers show the current values when the screen appears.
-    init(job: JobApplication, viewModel: JobViewModel) {
+    /// Creates a detail view for a new or existing job application.
+    /// - Parameter job: An existing application to edit, or `nil` to create a new one.
+    init(job: JobApplication?) {
         self.job = job
-        self.viewModel = viewModel
-        _company = State(initialValue: job.company)
-        _position = State(initialValue: job.position)
-        _type = State(initialValue: job.jobType)
-        _status = State(initialValue: job.status)
-        _season = State(initialValue: job.season)
-        _dateApplied = State(initialValue: job.dateApplied)
-        _jobNotes = State(initialValue: job.jobNotes ?? "")
-        _resumeFileName = State(initialValue: job.resumeFileName)
+        _companyName = State(initialValue: job?.companyName ?? "")
+        _companyLogoName = State(initialValue: job?.companyLogoName ?? "")
+        _companyLogoImageData = State(initialValue: job?.companyLogoImageData)
+        _position = State(initialValue: job?.position ?? "")
+        _type = State(initialValue: job?.jobType)
+        _status = State(initialValue: job?.status ?? .applied)
+        _season = State(initialValue: job?.season)
+        _dateApplied = State(initialValue: job?.dateApplied ?? Date())
+        _jobNotes = State(initialValue: job?.jobNotes ?? "")
+        _resumeFileName = State(initialValue: job?.resumeFileName)
+        __pendingResumeBookmark = State(initialValue: nil)
     }
 
     // MARK: - Body
-    
     var body: some View {
         ZStack {
-            /// Background layer: Frosted glass effect
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
 
-            /// Decorative gradient overlay for visual depth
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.10),
@@ -93,7 +85,13 @@ struct JobDetailView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-                    JobInfoSection(company: $company, position: $position)
+                    JobInfoSection(
+                        companyName: $companyName,
+                        companyLogoName: $companyLogoName,
+                        companyLogoImageData: $companyLogoImageData,
+                        position: $position,
+                        pickerItem: $pickerItem
+                    )
                     TypePickerSection(type: $type)
                     StatusPickerSection(status: $status)
                     SeasonPickerSection(season: $season)
@@ -105,7 +103,8 @@ struct JobDetailView: View {
                     )
                     JobNotesSection(jobNotes: $jobNotes)
                 }
-                /// Clear season when switching to job types that don't have seasons
+                // Clear season when the selected job type doesn't support seasons
+                // (only part-time, internship, temporary, and co-op have seasons).
                 .onChange(of: type) { oldType, newType in
                     let allowed: [ApplicationType] = [.partTime, .internship, .temporary, .Co_op]
                     if !(newType.map { allowed.contains($0) } ?? false) {
@@ -116,7 +115,6 @@ struct JobDetailView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        /// Present document picker sheet when user wants to attach a resume
         .sheet(isPresented: $isShowingDocumentPicker) {
             DocumentPicker { result in
                 switch result {
@@ -128,34 +126,18 @@ struct JobDetailView: View {
                 }
             }
         }
-        /// Floating save button pinned to bottom of screen
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
                 Divider()
                 HStack(spacing: 12) {
                     Button {
                         #if canImport(UIKit)
-                        /// Provide haptic feedback when saving
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         #endif
-                        /// Update the job in the view model with all edited values
-                        viewModel.update(
-                            job: job,
-                            company: company,
-                            position: position,
-                            type: type!,
-                            status: status!,
-                            season: season,
-                            dateApplied: dateApplied,
-                            jobNotes: jobNotes,
-                            resumeFileName: resumeFileName,
-                            resumeBookmark: _pendingResumeBookmark
-                        )
-                        _pendingResumeBookmark = nil
+                        save()
                         dismiss()
                     } label: {
-                        Text("Save Changes")
+                        Text(isNewApplication ? "Add Application" : "Save Changes")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -167,59 +149,88 @@ struct JobDetailView: View {
                 .background(.ultraThinMaterial)
             }
         }
-        /// Keyboard toolbar with Done button
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") {
                     #if canImport(UIKit)
-                    /// Dismiss keyboard when Done button is tapped
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     #endif
                 }
             }
+            if isNewApplication {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
         }
-        .navigationTitle("Job Details")
+        .navigationTitle(isNewApplication ? "New Application" : "Job Details")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Save
+    /// Persists the current form values to the SwiftData model context.
+    /// Updates the existing record if editing, or inserts a new one if creating.
+    private func save() {
+        if let job {
+            // Update existing
+            job.companyName = companyName
+            job.companyLogoName = companyLogoName
+            job.companyLogoImageData = companyLogoImageData
+            job.position = position
+            job.jobType = type
+            job.status = status
+            job.season = season
+            job.dateApplied = dateApplied
+            job.jobNotes = jobNotes
+            job.resumeFileName = resumeFileName
+            job.resumeBookmark = _pendingResumeBookmark ?? job.resumeBookmark
+        } else {
+            // Create new
+            let newJob = JobApplication(
+                companyName: companyName,
+                companyLogoName: companyLogoName,
+                companyLogoImageData: companyLogoImageData,
+                position: position,
+                jobType: type,
+                status: status,
+                season: season,
+                dateApplied: dateApplied,
+                jobNotes: jobNotes,
+                resumeFileName: resumeFileName,
+                resumeBookmark: _pendingResumeBookmark
+            )
+            modelContext.insert(newJob)
+        }
     }
 }
 
 // MARK: - Extracted Subviews
 
-/// Displays the company logo and two text fields: position title and company name.
-/// This view receives `@Binding` values so edits flow back up to `JobDetailView`'s
-/// local `@State` properties.
+/// Displays and allows editing of the company logo, position title, and company name.
 private struct JobInfoSection: View {
-    @Binding var company: Company
+    @Binding var companyName: String
+    @Binding var companyLogoName: String
+    @Binding var companyLogoImageData: Data?
     @Binding var position: String
-
-    @State private var pickerItem: PhotosPickerItem? = nil
-
-    /// Creates a two-way binding to the nested company.name property
-    private var companyNameBinding: Binding<String> {
-        Binding(
-            get: { company.name },
-            set: { company.name = $0 }
-        )
-    }
+    @Binding var pickerItem: PhotosPickerItem?
 
     #if canImport(UIKit)
-    /// Load custom uploaded image if available, otherwise use asset catalog
     private var logoImage: Image {
-        if let data = company.logoImageData, let ui = UIImage(data: data) {
+        if let data = companyLogoImageData, let ui = UIImage(data: data) {
             return Image(uiImage: ui)
+        } else if !companyLogoName.isEmpty {
+            return Image(companyLogoName)
         } else {
-            return Image(company.logoName)
+            return Image(systemName: "building.2")
         }
     }
     #else
-    /// On non-iOS platforms, always use asset catalog
-    private var logoImage: Image { Image(company.logoName) }
+    private var logoImage: Image { Image(companyLogoName) }
     #endif
 
     var body: some View {
         VStack(alignment: .center, spacing: 10) {
-            /// Tappable logo with PhotosPicker for choosing a custom image
             PhotosPicker(selection: $pickerItem, matching: .images) {
                 logoImage
                     .resizable()
@@ -230,7 +241,6 @@ private struct JobInfoSection: View {
                         Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
                     .overlay(alignment: .bottomTrailing) {
-                        /// Edit indicator badge
                         Image(systemName: "pencil.circle.fill")
                             .symbolRenderingMode(.multicolor)
                             .font(.system(size: 20))
@@ -241,27 +251,24 @@ private struct JobInfoSection: View {
                     }
                     .shadow(radius: 2)
             }
-            /// When a new image is picked, load it and save to the company
             .onChange(of: pickerItem) { oldValue, newValue in
                 guard let item = newValue else { return }
                 Task {
                     if let data = try? await item.loadTransferable(type: Data.self) {
-                        company.logoImageData = data
+                        companyLogoImageData = data
                     }
                 }
             }
-            /// Long-press menu to remove custom logo
             .contextMenu {
-                if company.logoImageData != nil {
+                if companyLogoImageData != nil {
                     Button(role: .destructive) {
-                        company.logoImageData = nil
+                        companyLogoImageData = nil
                     } label: {
                         Label("Remove Custom Logo", systemImage: "trash")
                     }
                 }
             }
 
-            /// Editable text fields with pencil indicators
             VStack {
                 HStack {
                     TextField("Position Title", text: $position)
@@ -281,7 +288,7 @@ private struct JobInfoSection: View {
                 }
 
                 HStack {
-                    TextField("Company Name", text: companyNameBinding)
+                    TextField("Company Name", text: $companyName)
                         .padding(.leading, 12)
                         .padding(.trailing, 36)
                         .multilineTextAlignment(.center)
@@ -303,11 +310,10 @@ private struct JobInfoSection: View {
     }
 }
 
-/// Lets the user pick a job type using horizontally scrolling pills.
+/// Horizontally scrollable pill picker for selecting the job's employment type.
 private struct TypePickerSection: View {
     @Binding var type: ApplicationType?
 
-    /// Puts the selected option first, then the rest in order
     private var orderedOptions: [ApplicationType] {
         if let selected = type {
             return [selected] + ApplicationType.allCases.filter { $0 != selected }
@@ -332,7 +338,6 @@ private struct TypePickerSection: View {
                                 color: option.color,
                                 onTap: {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                        /// Toggle: tap again to deselect
                                         type = (type == option ? nil : option)
                                     }
                                 }
@@ -342,7 +347,6 @@ private struct TypePickerSection: View {
                     }
                 }
                 .padding(.vertical)
-                /// Auto-scroll to keep selected option visible at the left
                 .onChange(of: type) { _, _ in
                     if let first = orderedOptions.first {
                         withAnimation(.smooth) {
@@ -354,11 +358,11 @@ private struct TypePickerSection: View {
         }
     }
 }
-/// Lets the user pick a job status using horizontally scrolling pills.
+
+/// Horizontally scrollable pill picker for selecting the application's current status.
 private struct StatusPickerSection: View {
     @Binding var status: ApplicationStatus?
 
-    /// Puts the selected option first, then the rest in order
     private var orderedOptions: [ApplicationStatus] {
         if let selected = status {
             return [selected] + ApplicationStatus.allCases.filter { $0 != selected }
@@ -404,11 +408,10 @@ private struct StatusPickerSection: View {
     }
 }
 
-/// Lets the user pick a season using horizontally scrolling pills.
+/// Horizontally scrollable pill picker for selecting the job's season (e.g., Summer, Fall).
 private struct SeasonPickerSection: View {
     @Binding var season: ApplicationSeason?
 
-    /// Puts the selected option first, then the rest in order
     private var orderedOptions: [ApplicationSeason] {
         if let selected = season {
             return [selected] + ApplicationSeason.allCases.filter { $0 != selected }
@@ -454,7 +457,7 @@ private struct SeasonPickerSection: View {
     }
 }
 
-/// A simple date picker limited to dates up to today (can't pick a future date).
+/// A date picker section for selecting when the application was submitted.
 private struct DateAppliedSection: View {
     @Binding var dateApplied: Date
 
@@ -475,10 +478,13 @@ private struct DateAppliedSection: View {
     }
 }
 
-/// A section that displays the current resume file (if any) and lets the user pick or clear it.
+/// Displays the attached resume file name and provides buttons to attach or remove a resume.
 private struct ResumeSection: View {
+    /// The name of the currently attached resume file, or `nil` if none.
     var resumeFileName: String?
+    /// Called when the user taps the attach button to pick a new file.
     var onPick: () -> Void
+    /// Called when the user taps the trash button to remove the attached resume.
     var onClear: () -> Void
 
     var body: some View {
@@ -516,14 +522,18 @@ private struct ResumeSection: View {
     }
 }
 
-/// A UIKit-based document picker wrapped for SwiftUI that returns a security-scoped bookmark for persistence.
+/// A UIKit document picker wrapped for SwiftUI, allowing the user to select
+/// a resume file (PDF, plain text, RTF, image, or raw data).
+///
+/// Returns the selected file's name and a security-scoped bookmark via the completion handler.
 private struct DocumentPicker: UIViewControllerRepresentable {
-    /// Structure holding the picked file's information
+    /// Represents a successfully picked file with its name and bookmark data.
     struct PickedFile {
         let fileName: String
         let bookmark: Data
     }
 
+    /// Completion handler called with the pick result.
     var completion: (Result<PickedFile, Error>) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
@@ -545,10 +555,8 @@ private struct DocumentPicker: UIViewControllerRepresentable {
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else { return }
             do {
-                /// Request security-scoped access to the file
                 let _ = url.startAccessingSecurityScopedResource()
                 defer { url.stopAccessingSecurityScopedResource() }
-                /// Create bookmark data that can be saved and used to access this file later
                 let bookmark = try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
                 completion(.success(PickedFile(fileName: url.lastPathComponent, bookmark: bookmark)))
             } catch {
@@ -560,8 +568,8 @@ private struct DocumentPicker: UIViewControllerRepresentable {
     }
 }
 
-/// A Text editor section for any notes needed to be added about the job position( benefits, requirements, etc.)
-private struct JobNotesSection: View{ 
+/// A multi-line text editor section for adding freeform notes about the job application.
+private struct JobNotesSection: View {
     @Binding var jobNotes: String
     
     var body: some View {
@@ -570,40 +578,36 @@ private struct JobNotesSection: View{
                 .font(.title3.weight(.semibold))
                 .foregroundColor(.primary)
             
-                ZStack(alignment: .topLeading) {
-                    if jobNotes.isEmpty {
-                        Text("Add notes...")
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                    }
-                    TextEditor(text: $jobNotes)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .frame(minHeight: 150)
-                        .padding(8)
+            ZStack(alignment: .topLeading) {
+                if jobNotes.isEmpty {
+                    Text("Add notes...")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                )
-            
+                TextEditor(text: $jobNotes)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+                    .frame(minHeight: 150)
+                    .padding(8)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+            )
         }
     }
 }
-// MARK: - Preview
 
 #Preview {
-    let testViewModel = JobViewModel()
-    let sampleCompany = Company(name: "Meta", logoName: "meta")
     let sampleJob = JobApplication(
-        company: sampleCompany,
+        companyName: "Meta",
+        companyLogoName: "meta",
         position: "Software Engineering Intern - 2026",
         dateApplied: Date()
     )
-    
-    return NavigationStack {
-        JobDetailView(job: sampleJob, viewModel: testViewModel)
+    NavigationStack {
+        JobDetailView(job: sampleJob)
     }
+    .modelContainer(for: JobApplication.self, inMemory: true)
 }
-
