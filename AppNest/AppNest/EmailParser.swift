@@ -77,13 +77,30 @@ struct EmailParser {
         
         for pattern in companyPatterns {
             if let result = extractCaptureGroup(from: text, pattern: pattern) {
-                let cleaned = result
+                var cleaned = result
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .trimmingCharacters(in: CharacterSet(charactersIn: ".,;:"))
-                if !cleaned.isEmpty && cleaned.count < 60 {
+                
+                // Remove leading "position"/"role" if it leaked in
+                let prefixes = ["position ", "role ", "the position ", "the role "]
+                for prefix in prefixes {
+                    if cleaned.lowercased().hasPrefix(prefix) {
+                        cleaned = String(cleaned.dropFirst(prefix.count))
+                    }
+                }
+                
+                // Remove trailing requisition/job ID numbers (e.g. "- 3078849")
+                if let idRange = cleaned.range(of: #"\s*-\s*\d{4,}$"#, options: .regularExpression) {
+                    cleaned = String(cleaned[..<idRange.lowerBound])
+                }
+                
+                cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleaned.isEmpty && cleaned.count < 100 {
                     return cleaned
                 }
             }
+
         }
         
         return nil
