@@ -40,6 +40,7 @@ struct EmailParser {
     /// Uses Apple's on-device NER to find organization names in the text.
     /// If multiple organizations are found, picks the most frequently mentioned one.
     private func extractCompanyName(from text: String) -> String? {
+        // Strategy 1: NLTagger NER
         let tagger = NLTagger(tagSchemes: [.nameType])
         tagger.string = text
         
@@ -61,10 +62,31 @@ struct EmailParser {
             return true
         }
         
-        // Return the most frequently mentioned organization
-        return organizations
-            .sorted { $0.value > $1.value }
-            .first?.key
+        if let topOrg = organizations.sorted(by: { $0.value > $1.value }).first?.key {
+            return topOrg
+        }
+        
+        // Strategy 2: Pattern matching fallback
+        let companyPatterns = [
+            #"(?:apply|applied|applying)\s+(?:to|at|for)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
+            #"(?:joining|join)\s+(?:our\s+team\s+at\s+|the\s+team\s+at\s+|)([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
+            #"(?:team|company)\s+(?:at|of)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
+            #"(?:welcome to|offer from)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\!|\n|$)"#,
+            #"(?:position|role|opportunity)\s+(?:at|with)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
+        ]
+        
+        for pattern in companyPatterns {
+            if let result = extractCaptureGroup(from: text, pattern: pattern) {
+                let cleaned = result
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: ".,;:"))
+                if !cleaned.isEmpty && cleaned.count < 60 {
+                    return cleaned
+                }
+            }
+        }
+        
+        return nil
     }
     
     // MARK: - Position Title (Pattern Matching)
@@ -84,12 +106,15 @@ struct EmailParser {
             #"(?:role|position|title)\s*:\s*(.+?)(?:\n|$)"#,
             // "interviewing for Software Engineer"
             #"interviewing\s+(?:you\s+)?for\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|for|@)\s+|,|\.\s|\n|$)"#,
+            // "offer you the Mobile Engineer role"
+            #"offer\s+(?:you\s+)?(?:the\s+)?(.+?)\s+(?:role|position)"#,
+            // "interest in the [POSITION]" or "interest in joining ... as a [POSITION]"
+            #"as\s+(?:a|an)\s+(.+?)(?:\.|,|\n|$)"#,
         ]
         
         for pattern in patterns {
             if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                 let matched = String(text[match])
-                // Extract the capture group content
                 if let result = extractCaptureGroup(from: matched, pattern: pattern) {
                     let cleaned = result
                         .trimmingCharacters(in: .whitespacesAndNewlines)
