@@ -141,6 +141,7 @@ struct JobDetailView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
                     .controlSize(.large)
                     .disabled(isSaveDisabled)
                 }

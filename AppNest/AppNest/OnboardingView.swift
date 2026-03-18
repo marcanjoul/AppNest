@@ -1,3 +1,11 @@
+//
+//  OnboardingView.swift
+//  AppNest
+//
+//  Created by Mark Anjoul on 3/18/26.
+//
+
+
 import SwiftUI
 
 struct OnboardingView: View {

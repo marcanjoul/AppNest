@@ -1,3 +1,11 @@
+//
+//  Theme.swift
+//  AppNest
+//
+//  Created by Mark Anjoul on 3/18/26.
+//
+
+
 import SwiftUI
 
 /// AppNest's design system — centralized colors and styles.

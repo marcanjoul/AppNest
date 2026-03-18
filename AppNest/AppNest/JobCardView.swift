@@ -3,156 +3,133 @@ import SwiftUI
 import UIKit
 #endif
 
-/// A card view that displays a summary of a job application.
-///
-/// Shows the company logo, position title, company name, status pills
-/// (job type, status, season), and a relative timestamp for when the
-/// application was submitted. Used in the main applications list.
 struct JobCardView: View {
-    /// The job application to display in this card.
     let job: JobApplication
 
-    /// Returns a human-readable relative date string (e.g., "Applied 3d ago").
     private var appliedRelativeText: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
-        return "Applied " + formatter.localizedString(for: job.dateApplied, relativeTo: Date())
+        return formatter.localizedString(for: job.dateApplied, relativeTo: Date())
+    }
+    
+    private var avatarColors: (background: Color, foreground: Color) {
+        Theme.avatarColor(for: job.companyName)
+    }
+    
+    private var initial: String {
+        String(job.companyName.prefix(1)).uppercased()
     }
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            // Company logo: shows custom image data, asset catalog image, or a fallback icon.
+            // Company avatar — image or letter fallback
             Group {
                 #if canImport(UIKit)
                 if let data = job.companyLogoImageData, let ui = UIImage(data: data) {
                     Image(uiImage: ui)
                         .resizable()
-                } else if !job.companyLogoName.isEmpty {
+                        .scaledToFill()
+                } else if !job.companyLogoName.isEmpty, UIImage(named: job.companyLogoName) != nil {
                     Image(job.companyLogoName)
                         .resizable()
+                        .scaledToFill()
                 } else {
-                    Image(systemName: "building.2")
-                        .resizable()
-                        .padding(12)
-                        .foregroundStyle(.secondary)
+                    Text(initial)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(avatarColors.foreground)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(avatarColors.background)
                 }
                 #else
-                Image(job.companyLogoName)
-                    .resizable()
+                Text(initial)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(avatarColors.foreground)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(avatarColors.background)
                 #endif
             }
-            .scaledToFill()
-            .frame(width: 56, height: 56)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.gray.opacity(0.25), lineWidth: 1))
-            .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            // Job details: position, company name, status pills, and date.
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(job.position)
-                    .font(.headline.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .layoutPriority(1)
                     
                 Text(job.companyName)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
 
-                // Horizontally scrollable row of status pills (type, status, season).
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        if let type = job.jobType {
-                            Pill(text: type.rawValue, color: type.color)
-                        }
-                        if let status = job.status {
-                            Pill(text: status.rawValue, color: status.color)
-                        }
-                        if let season = job.season {
-                            Pill(text: season.rawValue, color: season.color)
-                        }
+                HStack(spacing: 4) {
+                    if let status = job.status {
+                        let style = Theme.style(for: status)
+                        StatusPill(text: status.rawValue, background: style.background, foreground: style.foreground)
+                    }
+                    if let season = job.season {
+                        let style = Theme.style(for: season)
+                        StatusPill(text: season.rawValue, background: style.background, foreground: style.foreground)
                     }
                 }
-
-                Text(appliedRelativeText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
+                .padding(.top, 2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Navigation chevron indicating the card is tappable.
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.quaternary)
+            VStack(alignment: .trailing, spacing: 4) {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.quaternary)
+                
+                Spacer()
+                
+                Text(appliedRelativeText)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.blue.opacity(0.06),
-                            Color.cyan.opacity(0.04)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color(.separator).opacity(0.3), lineWidth: 0.5)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.black.opacity(0.06), lineWidth: 1)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
-    }
-}
-
-/// A small, non-interactive pill used inside `JobCardView` to display
-/// a colored label for job type, status, or season.
-private struct Pill: View {
-    /// The text displayed inside the pill (e.g., "Internship", "Applied").
-    let text: String
-    
-    /// The accent color for the pill background and text.
-    let color: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.bold))
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                Capsule().fill(color.opacity(0.25))
-            )
-            .foregroundStyle(color)
     }
 }
 
 #Preview {
-    let sampleJob = JobApplication(
-        companyName: "Meta",
-        companyLogoName: "meta",
-        position: "Software Engineering Intern - 2026",
-        jobType: .internship,
-        status: .applied,
-        season: .summer,
-        dateApplied: Date().addingTimeInterval(-86_400 * 10)
-    )
-
-    return VStack(spacing: 19) {
-        JobCardView(job: sampleJob)
-            .padding()
+    VStack(spacing: 10) {
+        JobCardView(job: JobApplication(
+            companyName: "Google",
+            companyLogoName: "google",
+            position: "Software Engineering Intern - 2026",
+            jobType: .internship,
+            status: .applied,
+            season: .summer,
+            dateApplied: Date().addingTimeInterval(-86_400 * 10)
+        ))
+        JobCardView(job: JobApplication(
+            companyName: "Apple",
+            position: "iOS Engineer Intern",
+            jobType: .internship,
+            status: .interview,
+            season: .summer,
+            dateApplied: Date().addingTimeInterval(-86_400 * 5)
+        ))
+        JobCardView(job: JobApplication(
+            companyName: "Meta",
+            position: "SDE Intern",
+            jobType: .internship,
+            status: .rejected,
+            season: .summer,
+            dateApplied: Date().addingTimeInterval(-86_400 * 20)
+        ))
     }
+    .padding()
     .background(Color(.systemGroupedBackground))
     .modelContainer(for: JobApplication.self, inMemory: true)
 }
