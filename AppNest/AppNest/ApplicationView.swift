@@ -32,6 +32,13 @@ struct ApplicationView: View {
         }
     }
     
+    private func deleteApplications(at offsets: IndexSet) {
+        for index in offsets {
+            let job = filteredApplications[index]
+            modelContext.delete(job)
+        }
+    }
+    
     var body: some View {
         // Main background gradient and content.
         ZStack {
@@ -75,21 +82,24 @@ struct ApplicationView: View {
                 // Shows the filtered list of job applications.
                 else {
                     // Scrollable list of job application cards.
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(filteredApplications) { job in
-                                // Navigates to detail view for selected job.
-                                NavigationLink {
-                                    JobDetailView(job: job)
-                                } label: {
-                                    JobCardView(job: job)
+                    List {
+                        ForEach(filteredApplications) { job in
+                            ZStack(alignment: .leading) {
+                                NavigationLink(destination: JobDetailView(job: job)) {
+                                    EmptyView()
                                 }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal)
+                                .opacity(0)
+                                
+                                JobCardView(job: job)
                             }
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                         }
-                        .padding(.vertical)
+                        .onDelete(perform: deleteApplications)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
         }
