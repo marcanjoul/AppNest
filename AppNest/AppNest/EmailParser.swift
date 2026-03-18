@@ -1,3 +1,11 @@
+//
+//  EmailParser.swift
+//  AppNest
+//
+//  Created by Mark Anjoul on 3/17/26.
+//
+
+
 import Foundation
 import NaturalLanguage
 
@@ -68,14 +76,14 @@ struct EmailParser {
     /// "applied to [POSITION]"
     private func extractPosition(from text: String) -> String? {
         let patterns = [
-            // "application for Software Engineer at Company"
-            #"(?:application|applied|applying)\s+(?:for|to)\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|@)\s+|\.|\n|$)"#,
+            // "application/applied/applying for/to [POSITION] at/with/for/@ Company"
+            #"(?:application|applied|applying)\s+(?:for|to)\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|for|@)\s+|,|\.\s|\n|$)"#,
             // "the Software Engineer role/position"
             #"(?:the|our)\s+(.+?)\s+(?:role|position|opening|opportunity)"#,
             // "Role: Software Engineer" or "Position: Software Engineer"
             #"(?:role|position|title)\s*:\s*(.+?)(?:\n|$)"#,
             // "interviewing for Software Engineer"
-            #"interviewing\s+(?:you\s+)?for\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|@)\s+|\.|\n|$)"#,
+            #"interviewing\s+(?:you\s+)?for\s+(?:the\s+)?(.+?)(?:\s+(?:at|with|for|@)\s+|,|\.\s|\n|$)"#,
         ]
         
         for pattern in patterns {

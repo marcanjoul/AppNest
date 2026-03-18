@@ -15,6 +15,13 @@ struct RootView: View {
             }
             
             NavigationStack {
+                        EmailParserView()
+                    }
+                    .tabItem {
+                        Label("Parse", systemImage: "envelope.open")
+                    }
+            
+            NavigationStack {
                 ProfileView()
             }
             .tabItem {

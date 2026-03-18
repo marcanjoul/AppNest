@@ -1,3 +1,11 @@
+//
+//  EmailParserView.swift
+//  AppNest
+//
+//  Created by Mark Anjoul on 3/17/26.
+//
+
+
 import SwiftUI
 import SwiftData
 
@@ -129,12 +137,67 @@ struct EmailParserView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") {
-                        #if canImport(UIKit)
+#if canImport(UIKit)
                         UIApplication.shared.sendAction(
                             #selector(UIResponder.resignFirstResponder),
                             to: nil, from: nil, for: nil
                         )
-                        #endif
+#endif
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func parseEmail() {
+        isParsing = true
+        parsedResult = nil
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            parsedResult = parser.parse(emailText)
+            isParsing = false
+        }
+    }
+    
+    private func saveApplication() {
+        guard let result = parsedResult else { return }
+        
+        let application = JobApplication(
+            companyName: result.companyName ?? "Unknown Company",
+            position: result.position ?? "Unknown Position",
+            status: result.status ?? .applied,
+            dateApplied: result.dateApplied ?? Date()
+        )
+        
+        modelContext.insert(application)
+        dismiss()
+    }
+}
+// MARK: - Result Row
+
+private struct ResultRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.body.weight(.medium))
+            }
+            
+            Spacer()
+        }
+    }
+}
+
