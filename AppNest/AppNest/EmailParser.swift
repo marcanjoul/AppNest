@@ -68,6 +68,7 @@ struct EmailParser {
         
         // Strategy 2: Pattern matching fallback
         let companyPatterns = [
+            #"(?:interest in|interested in)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\!|\n|$)"#,
             #"(?:apply|applied|applying)\s+(?:to|at|for)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
             #"(?:joining|join)\s+(?:our\s+team\s+at\s+|the\s+team\s+at\s+|)([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
             #"(?:team|company)\s+(?:at|of)\s+([A-Z][A-Za-z0-9&\s\.]+?)(?:\.|,|\n|$)"#,
