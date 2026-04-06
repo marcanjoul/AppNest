@@ -1,8 +1,6 @@
 # AppNest
 
-A clean, minimal iOS app for tracking job and internship applications — built with SwiftUI and SwiftData.
-
-> Built as a portfolio project to sharpen my iOS development skills. Designed to feel like a native Apple app with a calm, focused aesthetic.
+An iOS app for tracking job and internship applications — built with SwiftUI
 ---
 
 ## Features
