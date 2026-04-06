@@ -1,85 +1,94 @@
-# AppNest: Internship & Job Tracker App
+# AppNest
 
-AppNest is an iOS app built to help keep track of jobs that are applied to, it has the ability to manually add a past job, or even paste a job applied to from an email (using AI)! An effort made by me to enhance my developer knowledge in order to be ready for SWE internships.
+A clean, minimal iOS app for tracking job and internship applications — built with SwiftUI and SwiftData.
 
+> Built as a portfolio project to sharpen my iOS development skills. Designed to feel like a native Apple app with a calm, focused aesthetic.
+---
 
-> Designed to be the ultimate job search companion for students and early-career professionals.
+## Features
+
+**Track applications** — Add jobs manually with company, position, type, status, season, date, notes, and a resume attachment. Edit or delete anytime.
+
+**Parse emails with on-device AI** — Paste a job confirmation email and AppNest extracts the company name, position, status, and date automatically using Apple's NaturalLanguage framework. No API keys, no internet required.
+
+**Search, sort, and filter** — Find applications instantly by company or position. Sort by date or company name. Filter by status with horizontal chips or the toolbar menu.
+
+**Profile and stats** — See your total applications, breakdown by status, and most-applied companies at a glance. Export everything as a CSV.
+
+**Onboarding** — A clean three-screen walkthrough on first launch.
 
 ---
 
-## Screenshots/Demos
-Home & Job Details Views (In Progress Still)
+## Tech Stack
 
-<img src="https://github.com/user-attachments/assets/be1b7c9d-d3b7-4807-afca-35adeaf825b1" alt="0929 demo" width="180"/>
-
-
----
-
-## Key Features
-
-### 1. **Parse Job Emails**
-* Users can paste job-related emails into a parser view
-* AI extracts details using a custom prompt
-* Saves entry using current date as fallback timestamp
-* Uses **OpenAI API** to extract:
-
-  * Company
-  * Position Title
-  * Application Status
-  * & more
-* Automatically saves to your job tracker
-
-### 2. **Manual Entry (MVP Ready)**
-
-* Users can manually enter their applications to the tracker
-* They can manually adjust their input at any time
-* they can upload their tailored resume for every job
-
-### 3. **Smart Filtering & Status Tags**
-
-* Custom status options: `To Apply`, `Applied`, `Interview`, `Offer`, `Rejected`
-* Filter by role, company, date, or status
+| Layer | Technology |
+|---|---|
+| UI | SwiftUI |
+| Persistence | SwiftData (SQLite) |
+| NLP / Parsing | Apple NaturalLanguage framework (NLTagger) + regex patterns + NSDataDetector |
+| Architecture | MVVM-ish — `@Model` + `@Query` replace the traditional ViewModel |
+| Minimum Target | iOS 17+ |
 
 ---
 
-## App Structure
+## Architecture
 
-### Tabs
+AppNest uses SwiftData as its persistence layer, which eliminates the need for a traditional ViewModel class. Views query the database directly using `@Query` and mutate data through `@Environment(\.modelContext)`. This keeps the codebase lean — data flows from SQLite → SwiftData → SwiftUI with automatic UI updates on every change.
 
-* **Home**: List of job/internship entries (sortable + searchable)
-* **Add**: Paste email body / manual entry
-* **Profile**: Stats, export CSV, upload defualt resume
+The email parser uses a hybrid approach: Apple's `NLTagger` handles named entity recognition (extracting company names from natural language), regex patterns match common email templates for position titles, keyword matching detects application status, and `NSDataDetector` extracts dates.
+
+```
+AppNest/
+├── AppNestApp.swift          # Entry point, ModelContainer + onboarding gate
+├── Theme.swift               # Centralized color system and design tokens
+├── JobApplication.swift      # @Model data class + enums
+├── RootView.swift            # Tab bar (Applications, Parse, Profile)
+├── ApplicationView.swift     # Main list with search, sort, filter
+├── JobCardView.swift         # Card component with themed avatars
+├── JobDetailView.swift       # Add/edit form with pill pickers
+├── EmailParserView.swift     # Paste email → extract fields UI
+├── EmailParser.swift         # NLP + regex parsing engine
+├── ProfileView.swift         # Stats dashboard + CSV export
+├── OnboardingView.swift      # First-launch walkthrough
+└── PillUI.swift              # Reusable pill components
+```
 
 ---
 
-## Technologies Used
+## Screenshots/ Demos
 
-* **SwiftUI** for UI
-* **LLM API (TBD)** for parsing and tips
+
+| Onboarding (GIF) | Applications (GIF) | Detail View | Email Parser (GIF) | Profile |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="https://github.com/user-attachments/assets/2cb5632b-f4e2-4e21-bbfa-2914f06d0339" width="160"/> | <img src="https://github.com/user-attachments/assets/6d3b921d-8b80-4fb8-a591-c335e94eca94" width="160"/> | <img src="https://github.com/user-attachments/assets/0ee55add-8270-4401-a0fb-f41bb57b1100" width="160"/> | <img src="https://github.com/user-attachments/assets/bd6d5a11-f755-4b5d-b011-34f6a05db673" width="160"/> | <img src="https://github.com/user-attachments/assets/5786b23f-8874-443b-b60e-89a9b1f1477d" width="160"/> |
+
+---
+
+## Getting Started
+
+1. Clone the repo
+   ```bash
+   git clone https://github.com/marcanjoul/AppNest.git
+   ```
+2. Open `AppNest/AppNest.xcodeproj` in Xcode 15+
+3. Build and run on a simulator or device running iOS 17+
+
+No API keys or external dependencies required.
+
+---
+
+## What I Learned
+
+- SwiftData as a modern replacement for Core Data — how `@Model`, `@Query`, and `ModelContainer` simplify persistence
+- Apple's NaturalLanguage framework for on-device named entity recognition
+- Building a centralized design system in SwiftUI with a `Theme` enum
+- Hybrid parsing strategies combining NLP, regex, and Apple's data detectors
+- SwiftUI patterns: `@Environment(\.modelContext)`, `@AppStorage`, `NavigationStack`, `.searchable`, `.sheet`
 
 ---
 
 ## License
 
-MIT License  
+MIT License — Copyright (c) 2025 Mark Anjoul
 
-Copyright (c) 2025 Mark Anjoul  
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
+See [LICENSE](LICENSE) for full text.
