@@ -55,41 +55,74 @@ struct ApplicationView: View {
             DarkTheme.background
                 .ignoresSafeArea()
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("AppNest")
-                            .font(.system(size: 42, weight: .bold))
-                            .foregroundStyle(DarkTheme.textPrimary)
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // Search Bar
-                    searchBar
-                    
-                    // Statistics
-                    statsSection
-                    
-                    // Applications section
-                    VStack(alignment: .leading, spacing: 16) {
-                        if applications.isEmpty {
-                            emptyState
-                        } else if filteredAndSorted.isEmpty {
-                            noResultsState
-                        } else {
-                            ForEach(filteredAndSorted) { job in
-                                NavigationLink(destination: JobDetailView(job: job)) {
-                                    DarkJobCardView(job: job)
+            List {
+                // Header
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("AppNest")
+                        .font(.system(size: 42, weight: .bold))
+                        .foregroundStyle(DarkTheme.textPrimary)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                
+                // Search Bar
+                searchBar
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                
+                // Statistics
+                statsSection
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                
+                // Applications section
+                if applications.isEmpty {
+                    emptyState
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } else if filteredAndSorted.isEmpty {
+                    noResultsState
+                        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                } else {
+                    ForEach(filteredAndSorted) { job in
+                        ZStack {
+                            NavigationLink(destination: JobDetailView(job: job)) {
+                                EmptyView()
+                            }
+                            .opacity(0)
+                            
+                            DarkJobCardView(job: job)
+                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    modelContext.delete(job)
                                 }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 20)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                     }
-                    .padding(.bottom, 100) // Space for FAB
                 }
+                
+                // Spacer for FAB
+                Color.clear
+                    .frame(height: 100)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             
             // Floating Action Button
             VStack {
@@ -121,36 +154,95 @@ struct ApplicationView: View {
     // MARK: - Search Bar
     
     private var searchBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(DarkTheme.textSecondary)
-                .font(.system(size: 16))
-            
-            TextField("Search applications...", text: $searchText)
-                .font(.system(size: 16))
-                .foregroundStyle(DarkTheme.textPrimary)
-                .autocorrectionDisabled()
-            
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(DarkTheme.textSecondary)
-                        .font(.system(size: 16))
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(DarkTheme.textSecondary)
+                TextField("Search applications...", text: $searchText)
+                    .foregroundStyle(DarkTheme.textPrimary)
+                    .tint(Color.accentColor)
+                
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(DarkTheme.textSecondary)
+                    }
                 }
             }
+            .padding(12)
+            .background(DarkTheme.cardFill)
+            .cornerRadius(12)
+            
+            // Filter and Sort
+            HStack(spacing: 12) {
+                Menu {
+                    Button {
+                        selectedStatus = nil
+                    } label: {
+                        HStack {
+                            Text("All")
+                            if selectedStatus == nil {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    
+                    ForEach(ApplicationStatus.allCases, id: \.self) { status in
+                        Button {
+                            selectedStatus = status
+                        } label: {
+                            HStack {
+                                Text(status.rawValue)
+                                if selectedStatus == status {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Text(selectedStatus?.rawValue ?? "All")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(DarkTheme.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(DarkTheme.cardFill)
+                    .cornerRadius(8)
+                }
+                
+                Menu {
+                    ForEach(SortOption.allCases, id: \.self) { option in
+                        Button {
+                            sortOption = option
+                        } label: {
+                            HStack {
+                                Text(option.rawValue)
+                                if sortOption == option {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.up.arrow.down")
+                        Text(sortOption.rawValue)
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(DarkTheme.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(DarkTheme.cardFill)
+                    .cornerRadius(8)
+                }
+                
+                Spacer()
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(DarkTheme.cardFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(DarkTheme.cardBorder, lineWidth: 0.5)
-                )
-        )
         .padding(.horizontal, 20)
     }
     
