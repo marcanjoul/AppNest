@@ -160,18 +160,6 @@ struct DarkJobCardView: View {
                 .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(DarkTheme.textTertiary)
-                
-                Spacer()
-                
-                Text(dateText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(DarkTheme.textTertiary)
-            }
         }
         .padding(16)
         .background(

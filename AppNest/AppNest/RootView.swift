@@ -29,7 +29,6 @@ struct RootView: View {
             }
         }
         .background(DarkTheme.background)
-        .preferredColorScheme(.dark)
         .tint(.white)
     }
 }
