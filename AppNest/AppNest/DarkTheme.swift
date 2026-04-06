@@ -2,40 +2,68 @@
 //  DarkTheme.swift
 //  AppNest
 //
-//  Design system for dark AppNest UI
+//  Design system for AppNest UI with adaptive light/dark mode support
 //
 
 import SwiftUI
 
-/// Dark theme design system matching the mockup specifications
+/// Adaptive theme design system that responds to light/dark mode
 enum DarkTheme {
     
     // MARK: - Background Colors
     
-    /// Near-black background with blue shift: #0a0a0f
-    static let background = Color(red: 0x0a / 255.0, green: 0x0a / 255.0, blue: 0x0f / 255.0)
+    /// Adaptive background color
+    static let background = Color(UIColor.systemBackground)
     
     // MARK: - Card Styles
     
-    /// Card fill: rgba(255,255,255,0.04)
-    static let cardFill = Color.white.opacity(0.04)
+    /// Adaptive card fill with better light mode contrast
+    static let cardFill: Color = {
+        #if canImport(UIKit)
+        return Color(UIColor { traitCollection in
+            switch traitCollection.userInterfaceStyle {
+            case .dark:
+                return UIColor.secondarySystemGroupedBackground
+            default:
+                // In light mode, use a slightly darker gray for better visibility
+                return UIColor.systemGray6
+            }
+        })
+        #else
+        return Color(UIColor.secondarySystemGroupedBackground)
+        #endif
+    }()
     
-    /// Card border: rgba(255,255,255,0.09)
-    static let cardBorder = Color.white.opacity(0.09)
+    /// Adaptive card border with enhanced visibility
+    static let cardBorder: Color = {
+        #if canImport(UIKit)
+        return Color(UIColor { traitCollection in
+            switch traitCollection.userInterfaceStyle {
+            case .dark:
+                return UIColor.separator.withAlphaComponent(0.5)
+            default:
+                // In light mode, use a more visible border
+                return UIColor.separator.withAlphaComponent(0.8)
+            }
+        })
+        #else
+        return Color(UIColor.separator).opacity(0.5)
+        #endif
+    }()
     
     /// Card corner radius
     static let cardRadius: CGFloat = 20
     
     // MARK: - Text Colors
     
-    /// Primary white text
-    static let textPrimary = Color.white
+    /// Primary text (adapts to light/dark mode)
+    static let textPrimary = Color(UIColor.label)
     
-    /// Secondary text: rgba(255,255,255,0.4)
-    static let textSecondary = Color.white.opacity(0.4)
+    /// Secondary text (adapts to light/dark mode)
+    static let textSecondary = Color(UIColor.secondaryLabel)
     
-    /// Tertiary text: rgba(255,255,255,0.25)
-    static let textTertiary = Color.white.opacity(0.25)
+    /// Tertiary text (adapts to light/dark mode)
+    static let textTertiary = Color(UIColor.tertiaryLabel)
     
     // MARK: - Status Colors
     
@@ -77,23 +105,23 @@ enum DarkTheme {
             )
         case .toApply:
             return StatusStyle(
-                tintColor: Color.white.opacity(0.6),
-                fillColor: Color.white.opacity(0.08),
-                borderColor: Color.white.opacity(0.15)
+                tintColor: Color(UIColor.secondaryLabel),
+                fillColor: Color(UIColor.tertiarySystemFill),
+                borderColor: Color(UIColor.separator)
             )
         }
     }
     
     // MARK: - Type Tag Style
     
-    /// Type tag fill: rgba(255,255,255,0.06)
-    static let typeTagFill = Color.white.opacity(0.06)
+    /// Type tag fill (adaptive)
+    static let typeTagFill = Color(UIColor.tertiarySystemFill)
     static let typeTagRadius: CGFloat = 8
     
     // MARK: - Stat Chip Style
     
-    /// Stat chip fill: rgba(255,255,255,0.05)
-    static let statChipFill = Color.white.opacity(0.05)
+    /// Stat chip fill (adaptive)
+    static let statChipFill = Color(UIColor.secondarySystemGroupedBackground)
     static let statChipRadius: CGFloat = 14
     
     // MARK: - Section Label Style

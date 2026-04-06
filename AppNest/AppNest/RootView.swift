@@ -28,8 +28,6 @@ struct RootView: View {
                 Label("Profile", systemImage: "person.crop.circle")
             }
         }
-        .background(DarkTheme.background)
-        .tint(.white)
     }
 }
 

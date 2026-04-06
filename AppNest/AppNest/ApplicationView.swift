@@ -63,6 +63,10 @@ struct ApplicationView: View {
                             .font(.system(size: 42, weight: .bold))
                             .foregroundStyle(DarkTheme.textPrimary)
                     }
+                    .padding(.horizontal, 20)
+                    
+                    // Search Bar
+                    searchBar
                     
                     // Statistics
                     statsSection
@@ -97,9 +101,9 @@ struct ApplicationView: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(DarkTheme.background)
+                            .foregroundStyle(.white)
                             .frame(width: 64, height: 64)
-                            .background(Circle().fill(.white))
+                            .background(Circle().fill(Color.accentColor))
                             .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
                     }
                     .padding(.trailing, 20)
@@ -112,6 +116,42 @@ struct ApplicationView: View {
                 JobDetailView(job: nil)
             }
         }
+    }
+    
+    // MARK: - Search Bar
+    
+    private var searchBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(DarkTheme.textSecondary)
+                .font(.system(size: 16))
+            
+            TextField("Search applications...", text: $searchText)
+                .font(.system(size: 16))
+                .foregroundStyle(DarkTheme.textPrimary)
+                .autocorrectionDisabled()
+            
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(DarkTheme.textSecondary)
+                        .font(.system(size: 16))
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(DarkTheme.cardFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(DarkTheme.cardBorder, lineWidth: 0.5)
+                )
+        )
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Stats Section
