@@ -52,35 +52,61 @@ struct ApplicationView: View {
     
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground)
+            DarkTheme.background
                 .ignoresSafeArea()
             
-            Group {
-                if applications.isEmpty && searchText.isEmpty {
-                    emptyState
-                } else if filteredAndSorted.isEmpty {
-                    noResultsState
-                } else {
-                    applicationList
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("AppNest")
+                            .font(.system(size: 42, weight: .bold))
+                            .foregroundStyle(DarkTheme.textPrimary)
+                    }
+                    
+                    // Statistics
+                    statsSection
+                    
+                    // Applications section
+                    VStack(alignment: .leading, spacing: 16) {
+                        if applications.isEmpty {
+                            emptyState
+                        } else if filteredAndSorted.isEmpty {
+                            noResultsState
+                        } else {
+                            ForEach(filteredAndSorted) { job in
+                                NavigationLink(destination: JobDetailView(job: job)) {
+                                    DarkJobCardView(job: job)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 20)
+                            }
+                        }
+                    }
+                    .padding(.bottom, 100) // Space for FAB
                 }
             }
-        }
-        .navigationTitle("Applications")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    sortMenu
+            
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
                     Button {
                         isPresentingNewApplication = true
                     } label: {
                         Image(systemName: "plus")
-                            .fontWeight(.medium)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(DarkTheme.background)
+                            .frame(width: 64, height: 64)
+                            .background(Circle().fill(.white))
+                            .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
                     }
-                    .accessibilityLabel("Add Application")
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "Search by title or company")
         .sheet(isPresented: $isPresentingNewApplication) {
             NavigationStack {
                 JobDetailView(job: nil)
@@ -88,119 +114,28 @@ struct ApplicationView: View {
         }
     }
     
-    // MARK: - Sort Menu
+    // MARK: - Stats Section
     
-    private var sortMenu: some View {
-        Menu {
-            Section("Sort by") {
-                ForEach(SortOption.allCases, id: \.self) { option in
-                    Button {
-                        sortOption = option
-                    } label: {
-                        HStack {
-                            Text(option.rawValue)
-                            if sortOption == option {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            }
-            
-            Section("Filter by status") {
-                Button {
-                    selectedStatus = nil
-                } label: {
-                    HStack {
-                        Text("All")
-                        if selectedStatus == nil {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-                
-                ForEach(ApplicationStatus.allCases, id: \.self) { status in
-                    Button {
-                        selectedStatus = status
-                    } label: {
-                        HStack {
-                            Text(status.rawValue)
-                            if selectedStatus == status {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "line.3.horizontal.decrease")
-                .fontWeight(.medium)
+    private var statsSection: some View {
+        HStack(spacing: 12) {
+            StatChip(
+                number: applications.filter { $0.status == .applied }.count,
+                label: "Applied"
+            )
+            StatChip(
+                number: applications.filter { $0.status == .interview }.count,
+                label: "Interviewing"
+            )
+            StatChip(
+                number: applications.filter { $0.status == .offer }.count,
+                label: "Offers"
+            )
+            StatChip(
+                number: applications.filter { $0.status == .rejected }.count,
+                label: "Rejected"
+            )
         }
-    }
-    
-    // MARK: - Application List
-    
-    private var applicationList: some View {
-        List {
-            // Status filter chips
-            if !applications.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        filterChip(label: "All", isSelected: selectedStatus == nil) {
-                            selectedStatus = nil
-                        }
-                        ForEach(ApplicationStatus.allCases, id: \.self) { status in
-                            let count = applications.filter { $0.status == status }.count
-                            if count > 0 {
-                                filterChip(
-                                    label: "\(status.rawValue) (\(count))",
-                                    isSelected: selectedStatus == status
-                                ) {
-                                    selectedStatus = (selectedStatus == status) ? nil : status
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                }
-                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-            }
-            
-            ForEach(filteredAndSorted) { job in
-                ZStack(alignment: .leading) {
-                    NavigationLink(destination: JobDetailView(job: job)) {
-                        EmptyView()
-                    }
-                    .opacity(0)
-                    
-                    JobCardView(job: job)
-                }
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-            }
-            .onDelete(perform: deleteApplications)
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-    }
-    
-    // MARK: - Filter Chip
-    
-    private func filterChip(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.footnote.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule().fill(isSelected ? Theme.accent : Color(.tertiarySystemFill))
-                )
-                .foregroundStyle(isSelected ? .white : .primary)
-        }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Empty States
@@ -209,26 +144,30 @@ struct ApplicationView: View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
                 .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DarkTheme.textSecondary)
             Text("No applications yet")
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(DarkTheme.textPrimary)
             Text("Tap + to add your first application.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DarkTheme.textSecondary)
         }
         .padding()
+        .padding(.horizontal, 20)
     }
     
     private var noResultsState: some View {
         VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DarkTheme.textSecondary)
             Text("No results")
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(DarkTheme.textPrimary)
             Text("No matches for your search or filter.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DarkTheme.textSecondary)
         }
         .padding()
+        .padding(.horizontal, 20)
     }
     
     // MARK: - Actions

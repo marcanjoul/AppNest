@@ -136,15 +136,6 @@ VStack {
 )
 ```
 
-### Section label
-```swift
-Text("RECENT")
-    .font(.system(size: DarkTheme.sectionLabelSize, weight: .semibold))
-    .tracking(DarkTheme.sectionLabelSpacing)
-    .foregroundStyle(DarkTheme.textTertiary)
-    .textCase(.uppercase)
-```
-
 ### Floating action button
 ```swift
 Button {

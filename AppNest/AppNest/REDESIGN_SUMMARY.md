@@ -46,7 +46,6 @@ Successfully redesigned the AppNest UI to match the provided mockup with a dark 
 **Major redesign:**
 - Removed navigation title and toolbar (moved to on-screen header)
 - Added large "AppNest" title (42pt bold)
-- Added "Spring 2026 cycle" subtitle (18pt medium, secondary)
 - Statistics displayed as stat chips in horizontal layout:
   - Large bold number (28pt)
   - Small muted label below (12pt)
@@ -54,10 +53,6 @@ Successfully redesigned the AppNest UI to match the provided mockup with a dark 
 - Email parser notification card with:
   - Dark red-tinted background (#2a1a1a)
   - Icon, title, description, and "New" pill
-- "RECENT" section label:
-  - Uppercase, 11pt semibold
-  - Letter-spaced (1.2pt tracking)
-  - Tertiary white color
 - Floating action button (white circle, bottom-right)
 - Dark background throughout
 - Removed List-based layout in favor of ScrollView + VStack

@@ -15,11 +15,11 @@ struct RootView: View {
             }
             
             NavigationStack {
-                        EmailParserView()
-                    }
-                    .tabItem {
-                        Label("Parse", systemImage: "envelope.open")
-                    }
+                EmailParserView()
+            }
+            .tabItem {
+                Label("Parse", systemImage: "envelope.open")
+            }
             
             NavigationStack {
                 ProfileView()
@@ -28,6 +28,9 @@ struct RootView: View {
                 Label("Profile", systemImage: "person.crop.circle")
             }
         }
+        .background(DarkTheme.background)
+        .preferredColorScheme(.dark)
+        .tint(.white)
     }
 }
 
